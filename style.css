@@ -1,0 +1,254 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
+}
+
+body {
+    background-color: #000;
+    color: #fff;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding: 20px 0;
+    border-bottom: 1px solid #333;
+}
+
+header h1 {
+    color: #6c5ce7;
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+}
+
+header p {
+    color: #a29bfe;
+}
+
+.wallet-connect {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.wallet-connect button {
+    background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+.wallet-connect button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(108, 92, 231, 0.3);
+}
+
+#walletAddress {
+    margin-top: 10px;
+    font-size: 0.9rem;
+    color: #a29bfe;
+    word-break: break-all;
+}
+
+.balance-box {
+    background: #111;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 30px;
+    text-align: center;
+    border: 1px solid #333;
+}
+
+.balance-box h3 {
+    color: #a29bfe;
+    margin-bottom: 10px;
+}
+
+#userBalance {
+    font-size: 2rem;
+    font-weight: 600;
+    color: #6c5ce7;
+}
+
+.tasks {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.task-card {
+    background: #111;
+    border-radius: 10px;
+    padding: 20px;
+    border: 1px solid #333;
+    transition: all 0.3s;
+}
+
+.task-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(108, 92, 231, 0.1);
+}
+
+.task-card h3 {
+    color: #a29bfe;
+    margin-bottom: 10px;
+}
+
+.task-card p {
+    margin-bottom: 15px;
+    font-size: 0.9rem;
+}
+
+.task-button {
+    background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    width: 100%;
+    transition: all 0.3s;
+}
+
+.task-button:hover {
+    opacity: 0.9;
+}
+
+.task-button:disabled {
+    background: #333;
+    cursor: not-allowed;
+}
+
+.task-link {
+    display: block;
+    background: #1a1a1a;
+    color: #a29bfe;
+    padding: 8px 16px;
+    border-radius: 6px;
+    text-decoration: none;
+    margin-bottom: 15px;
+    text-align: center;
+    transition: all 0.3s;
+}
+
+.task-link:hover {
+    background: #222;
+}
+
+#dailyTimer {
+    font-size: 0.8rem;
+    color: #a29bfe;
+    margin-top: 10px;
+    text-align: center;
+}
+
+.referral {
+    background: #111;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 30px;
+    border: 1px solid #333;
+}
+
+.referral h3 {
+    color: #a29bfe;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.referral p {
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.referral-input {
+    display: flex;
+    margin-bottom: 15px;
+}
+
+.referral-input input {
+    flex: 1;
+    padding: 10px;
+    border-radius: 6px 0 0 6px;
+    border: 1px solid #333;
+    background: #1a1a1a;
+    color: white;
+}
+
+.referral-input button {
+    padding: 10px 15px;
+    background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+    color: white;
+    border: none;
+    border-radius: 0 6px 6px 0;
+    cursor: pointer;
+}
+
+.referral-link {
+    display: flex;
+    margin-bottom: 15px;
+}
+
+.referral-link input {
+    flex: 1;
+    padding: 10px;
+    border-radius: 6px 0 0 6px;
+    border: 1px solid #333;
+    background: #1a1a1a;
+    color: white;
+}
+
+.referral-link button {
+    padding: 10px 15px;
+    background: #333;
+    color: white;
+    border: none;
+    border-radius: 0 6px 6px 0;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.referral-link button:hover {
+    background: #444;
+}
+
+#referralCount {
+    color: #6c5ce7;
+    font-weight: 500;
+    text-align: center;
+}
+
+footer {
+    text-align: center;
+    padding: 20px 0;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+@media (max-width: 600px) {
+    .container {
+        padding: 15px;
+    }
+    
+    header h1 {
+        font-size: 2rem;
+    }
+    
+    .tasks {
+        grid-template-columns: 1fr;
+    }
+}

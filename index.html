@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Add these in the <head> section -->
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DUBE Crypto Airdrop</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>DUBE Airdrop</h1>
+            <p>Claim your free $DUBE tokens and earn more through tasks!</p>
+        </header>
+
+        <div class="wallet-connect">
+            <button id="connectWallet">Connect Wallet</button>
+            <p id="walletAddress"></p>
+        </div>
+
+        <div class="balance-box">
+            <h3>Your $DUBE Balance</h3>
+            <p id="userBalance">0 DUBE</p>
+        </div>
+
+        <div class="tasks">
+            <div class="task-card">
+                <h3>Daily Bonus</h3>
+                <p>Claim 50 $DUBE every 24 hours</p>
+                <button id="dailyBonus" class="task-button">Claim Bonus</button>
+                <p id="dailyTimer">Available now</p>
+            </div>
+
+            <div class="task-card">
+                <h3>Telegram Task</h3>
+                <p>Join our Telegram to earn 70 $DUBE</p>
+                <a href="https://t.me/dubesolana" target="_blank" class="task-link">Join Telegram</a>
+                <button id="telegramVerify" class="task-button">Verify</button>
+            </div>
+
+            <div class="task-card">
+                <h3>Twitter Task</h3>
+                <p>Follow us on Twitter to earn 100 $DUBE</p>
+                <a href="https://x.com/dubecoin?s=09" target="_blank" class="task-link">Follow Twitter</a>
+                <button id="twitterVerify" class="task-button">Verify</button>
+            </div>
+
+            <div class="task-card">
+                <h3>Retweet Task</h3>
+                <p>Retweet our pinned post to earn 70 $DUBE</p>
+                <a href="https://x.com/dubecoin/status/1930024259562176959?t=O5k9ua93s60gn-huEnsQ-w&s=19" target="_blank" class="task-link">View Tweet</a>
+                <button id="retweetVerify" class="task-button">Verify</button>
+            </div>
+        </div>
+
+        <div class="referral">
+            <h3>Referral Program</h3>
+            <p>Earn 150 $DUBE for each friend who joins</p>
+            <div class="referral-input">
+                <input type="text" id="referralCode" placeholder="Enter referral code (optional)">
+                <button id="applyReferral">Apply</button>
+            </div>
+            <p>Your referral link:</p>
+            <div class="referral-link">
+                <input type="text" id="userReferralLink" readonly>
+                <button id="copyReferral">Copy</button>
+            </div>
+            <p id="referralCount">You've referred 0 friends</p>
+        </div>
+
+        <footer>
+            <p>© 2025 DUBE Airdrop. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
