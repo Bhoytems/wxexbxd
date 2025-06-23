@@ -1,11 +1,12 @@
 // Firebase configuration
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyDLxVyd6Wzp8gJ-BMZWCQyJlDJhk0a1UyA",
+  authDomain: "dube-f0210.firebaseapp.com",
+  projectId: "dube-f0210",
+  storageBucket: "dube-f0210.firebasestorage.app",
+  messagingSenderId: "369666225818",
+  appId: "1:369666225818:web:bc99423f4c8c163f99d123"
+  measurementId: "G-RNP41FMVND"
 };
 
 // Initialize Firebase
