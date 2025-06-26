@@ -1,12 +1,12 @@
 // Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyA_eUj9NVytRB6nkZ0fqAikN0FjUWWmxKo",
-  authDomain: "dube-8c13d.firebaseapp.com",
-  projectId: "dube-8c13d",
-  storageBucket: "dube-8c13d.firebasestorage.app",
-  messagingSenderId: "508467136160",
-  appId: "1:508467136160:web:5dd46b6cc7517d88caabc5"
-  measurementId: "G-62Q37P101L"
+  apiKey: "AIzaSyDLxVyd6Wzp8gJ-BMZWCQyJlDJhk0a1UyA",
+  authDomain: "dube-f0210.firebaseapp.com",
+  projectId: "dube-f0210",
+  storageBucket: "dube-f0210.firebasestorage.app",
+  messagingSenderId: "369666225818",
+  appId: "1:369666225818:web:bc99423f4c8c163f99d123"
+  measurementId: "G-RNP41FMVND"
 };
 
 // Initialize Firebase
