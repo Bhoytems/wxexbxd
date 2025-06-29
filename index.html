@@ -2,14 +2,15 @@
 <html lang="en">
 <head>
   <!-- Add these in the <head> section -->
-<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DUBE Crypto Airdrop</title>
-    <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DUBE Crypto Airdrop</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
     <div class="container">
@@ -19,8 +20,8 @@
         </header>
 
         <div class="wallet-connect">
-            <button id="connectWallet">Connect Wallet</button>
-            <p id="walletAddress"></p>
+            <button id="twitterLogin"><i class="fab fa-twitter"></i> Login with Twitter</button>
+            <p id="userInfo"></p>
         </div>
 
         <div class="balance-box">
@@ -31,28 +32,28 @@
         <div class="tasks">
             <div class="task-card">
                 <h3>Daily Bonus</h3>
-                <p>Claim 50 $DUBE every 24 hours</p>
+                <p>Claim 100 $DUBE every 24 hours</p>
                 <button id="dailyBonus" class="task-button">Claim Bonus</button>
                 <p id="dailyTimer">Available now</p>
             </div>
 
             <div class="task-card">
                 <h3>Telegram Task</h3>
-                <p>Join our Telegram to earn 70 $DUBE</p>
+                <p>Join our Telegram to earn 150 $DUBE</p>
                 <a href="https://t.me/dubesolana" target="_blank" class="task-link">Join Telegram</a>
                 <button id="telegramVerify" class="task-button">Verify</button>
             </div>
 
             <div class="task-card">
                 <h3>Twitter Task</h3>
-                <p>Follow us on Twitter to earn 100 $DUBE</p>
+                <p>Follow us on Twitter to earn 200 $DUBE</p>
                 <a href="https://x.com/dubecoin?s=09" target="_blank" class="task-link">Follow Twitter</a>
                 <button id="twitterVerify" class="task-button">Verify</button>
             </div>
 
             <div class="task-card">
                 <h3>Retweet Task</h3>
-                <p>Retweet our pinned post to earn 70 $DUBE</p>
+                <p>Retweet our pinned post to earn 150 $DUBE</p>
                 <a href="https://x.com/dubecoin/status/1930024259562176959?t=O5k9ua93s60gn-huEnsQ-w&s=19" target="_blank" class="task-link">View Tweet</a>
                 <button id="retweetVerify" class="task-button">Verify</button>
             </div>
@@ -60,7 +61,7 @@
 
         <div class="referral">
             <h3>Referral Program</h3>
-            <p>Earn 150 $DUBE for each friend who joins</p>
+            <p>Earn 300 $DUBE for each friend who joins</p>
             <div class="referral-input">
                 <input type="text" id="referralCode" placeholder="Enter referral code (optional)">
                 <button id="applyReferral">Apply</button>
@@ -79,28 +80,5 @@
     </div>
 
     <script src="script.js"></script>
-<script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-analytics.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
-
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-  const firebaseConfig = {
-    apiKey: "AIzaSyDLxVyd6Wzp8gJ-BMZWCQyJlDJhk0a1UyA",
-    authDomain: "dube-f0210.firebaseapp.com",
-    projectId: "dube-f0210",
-    storageBucket: "dube-f0210.firebasestorage.app",
-    messagingSenderId: "369666225818",
-    appId: "1:369666225818:web:bc99423f4c8c163f99d123",
-    measurementId: "G-RNP41FMVND"
-  };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-</script>
 </body>
-</html>
+    </html
