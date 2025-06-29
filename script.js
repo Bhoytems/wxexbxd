@@ -45,6 +45,11 @@ const userReferralLinkEl = document.getElementById('userReferralLink');
 const copyReferralBtn = document.getElementById('copyReferral');
 const referralCountEl = document.getElementById('referralCount');
 
+// Create profile icon container for top right
+const profileIconContainer = document.createElement('div');
+profileIconContainer.className = 'profile-icon-container';
+document.body.appendChild(profileIconContainer);
+
 // Initialize the app
 async function init() {
     updateUI();
@@ -59,7 +64,71 @@ async function init() {
             userData.twitterUsername = token.claims.screen_name;
             userData.twitterProfilePic = user.photoURL;
             
-            // Display user info
+            // Display user info in profile icon (top right)
+            profileIconContainer.innerHTML = `
+                <img src="${userData.twitterProfilePic}" alt="Profile" class="profile-icon">
+                <div class="profile-dropdown">
+                    <span>@${userData.twitterUsername}</span>
+                    <button id="logoutBtn">Logout</button>
+                </div>
+            `;
+            
+            // Add logout button event listener
+            document.getElementById('logoutBtn').addEventListener('click', async () => {
+                await auth.signOut();
+            });
+            
+            // Update login button (center)
+            twitterLoginBtn.style.display = 'none';
+            
+            // Load user data
+            await loadUserData();
+            
+            // Update referral link
+            userReferralLinkEl.value = `${window.location.origin}${window.location.pathname}?ref=${userData.referralCode}`;
+            referralCountEl.textContent = `You've referred ${userData.referredUsers} friends`;
+            
+            // Check for referral code in URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const refCode = urlParams.get('ref');
+            if (refCode && refCode !== userData.referralCode) {
+                applyReferral(refCode);
+            }
+        } else {
+            // User is signed out
+            userData.uid = null;
+            userData.twitterUsername = null;
+            userData.twitterProfilePic = null;
+            
+            // Clear profile icon
+            profileIconContainer.innerHTML = '';
+            
+            // Show login button (center)
+            twitterLoginBtn.style.display = 'block';
+            twitterLoginBtn.innerHTML = '<i class="fab fa-twitter"></i> Login with Twitter';
+        }
+        updateUI();
+    });
+}
+
+// Twitter login button handler (centered button)
+twitterLoginBtn.addEventListener('click', async () => {
+    if (auth.currentUser) {
+        // User is logged in, so log them out
+        await auth.signOut();
+    } else {
+        // Sign in with Twitter
+        const provider = new firebase.auth.TwitterAuthProvider();
+        try {
+            await auth.signInWithPopup(provider);
+        } catch (error) {
+            console.error("Twitter login error:", error);
+            alert('Error logging in with Twitter. Please try again.');
+        }
+    }
+});
+
+// Display user info
             userInfoEl.innerHTML = `
                 <img src="${userData.twitterProfilePic}" alt="Profile" class="profile-pic">
                 <span>@${userData.twitterUsername}</span>
@@ -309,7 +378,7 @@ async function applyReferral(code) {
             alert('An error occurred while applying the referral.');
         }
     }
-}
+} ...
 
 // Helper function to generate referral code
 function generateReferralCode() {
@@ -325,4 +394,4 @@ function generateReferralCode() {
 init();
 
 // Check daily bonus every minute
-setInterval(checkDailyBonusAvailability, 60000)
+setInterval(checkDailyBonusAvailability, 60000);
