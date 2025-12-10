@@ -4,84 +4,89 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
   <meta name="theme-color" content="#0d1117" />
-  <title>Pro v4.2 – Signal Analyzer (Telegram WebApp)</title>
+  <title>Pro v4.3 – Signal Analyzer</title>
 
-  <!-- external libs -->
   <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
 
-  <!-- styles -->
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <!-- Top safe header (useful for Telegram webapp safe area) -->
-  <header class="app-header">
-    <div class="logo-wrap" id="logoWrap" title="Click to toggle spin">
-      <!-- spinning logo circle -->
-      <div id="logoCircle" class="logo-circle">LOGO</div>
+
+<header class="app-header">
+  <div class="logo-wrap" id="logoWrap">
+    <div id="logoCircle" class="logo-circle">LOGO</div>
+  </div>
+
+  <div class="app-title">
+    <h1>Pro v4.3</h1>
+    <p class="subtitle">Crypto + Forex Signal Analyzer</p>
+  </div>
+</header>
+
+<!-- TradingView toolbar -->
+<nav class="toolbar" id="toolbar">
+  <div class="tf-group">
+    <button class="tf-btn active" data-tf="1m">1m</button>
+    <button class="tf-btn" data-tf="3m">3m</button>
+    <button class="tf-btn" data-tf="5m">5m</button>
+    <button class="tf-btn" data-tf="15m">15m</button>
+    <button class="tf-btn" data-tf="1h">1h</button>
+    <button class="tf-btn" data-tf="1d">1d</button>
+  </div>
+
+  <div class="tools">
+    <button id="btnCross">Crosshair</button>
+    <button id="btnIndicators">Indicators</button>
+    <button id="btnRefresh">Analyze</button>
+    <label class="auto-label"><input type="checkbox" id="autoRefresh"> Auto</label>
+  </div>
+</nav>
+
+<main class="main-card">
+
+  <!-- Controls: Market + Asset -->
+  <div class="controls-row">
+    <select id="market">
+      <option value="crypto">Crypto</option>
+      <option value="forex">Forex</option>
+    </select>
+
+    <select id="asset"></select>
+  </div>
+
+  <!-- PREMIUM INFO BLOCK ABOVE CHART -->
+  <section class="premium-info" id="premiumInfo">
+
+    <div class="info-header">
+      <div class="info-asset" id="infoAsset">BTC/USDT — 1m</div>
+      <div class="signal-badge hold" id="signalBadge">HOLD</div>
     </div>
 
-    <div class="app-title">
-      <h1>Pro v4.2</h1>
-      <p class="subtitle">Crypto + Forex Signal Analyzer — Mobile + Telegram WebApp</p>
-    </div>
-  </header>
+    <div class="info-price" id="infoPrice">$0.0000</div>
 
-  <!-- Toolbar: trading view style -->
-  <nav class="toolbar" id="toolbar">
-    <div class="tf-group" id="tfGroup">
-      <!-- timeframe buttons (wired in JS) -->
-      <button class="tf-btn active" data-tf="1m">1m</button>
-      <button class="tf-btn" data-tf="3m">3m</button>
-      <button class="tf-btn" data-tf="5m">5m</button>
-      <button class="tf-btn" data-tf="15m">15m</button>
-      <button class="tf-btn" data-tf="1h">1h</button>
-      <button class="tf-btn" data-tf="1d">1d</button>
+    <div class="info-grid">
+      <div><b>RSI:</b> <span id="rsiVal">—</span></div>
+      <div><b>EMA 9:</b> <span id="ema9Val">—</span></div>
+      <div><b>EMA 21:</b> <span id="ema21Val">—</span></div>
+      <div><b>MACD:</b> <span id="macdVal">—</span></div>
+      <div><b>SL:</b> <span id="slVal">—</span></div>
+      <div><b>TP:</b> <span id="tpVal">—</span></div>
     </div>
 
-    <div class="tools">
-      <button id="btnCross">Crosshair</button>
-      <button id="btnZoom">Zoom</button>
-      <button id="btnIndicators">Indicators</button>
-      <button id="btnRefresh">Analyze</button>
-      <label class="auto-label"><input type="checkbox" id="autoRefresh"> Auto</label>
-    </div>
-  </nav>
+  </section>
 
-  <!-- main card (fills available area on mobile) -->
-  <main class="main-card" id="mainCard">
-    <div class="controls-row">
-      <select id="market">
-        <option value="crypto">Crypto</option>
-        <option value="forex">Forex</option>
-      </select>
+  <!-- Full-width charts -->
+  <section class="charts">
+    <div id="tvChart" class="chart-panel"></div>
+    <div id="rsiChart" class="chart-panel small"></div>
+  </section>
 
-      <select id="asset"></select>
+</main>
 
-      <div class="compact-stats">
-        <span id="priceText">—</span>
-        <span id="signalBadge" class="signal hold">HOLD</span>
-      </div>
-    </div>
+<footer class="app-footer">
+  <small>MAGNIFICO © 2025</small>
+</footer>
 
-    <!-- charts area: wide and responsive -->
-    <section class="charts">
-      <div id="tvChart" class="chart-panel"></div>
-      <div id="rsiChart" class="chart-panel small"></div>
-    </section>
-
-    <!-- output / info -->
-    <section id="output" class="output-panel">
-      <div id="infoRows" class="info-rows">
-        <!-- dynamic content inserted by JS -->
-      </div>
-    </section>
-  </main>
-
-  <footer class="app-footer">
-    <small>Created by MAGNIFICO © 2025 — Optimized for Telegram WebApp</small>
-  </footer>
-
-  <!-- app script -->
-  <script src="app.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
