@@ -1,41 +1,5 @@
 /* ============================================================
-   CONFIG
-============================================================ */
-const TWELVE_KEY = "2fb822c09c1c42e19c07e94090f18b42";   // ← Insert your TwelveData key
-
-/* ============================================================
-   TIMEFRAME CONVERSION (Critical Fix)
-============================================================ */
-function mapTimeframe(tf, isForex) {
-  if (!isForex) return tf; // Binance uses same format
-  
-  const mapping = {
-    "1m": "1min",
-    "3m": "5min",  // closest available
-    "5m": "5min",
-    "15m": "15min",
-    "1h": "1h",
-    "1d": "1day"
-  };
-
-  return mapping[tf] || "1min";
-}  let interval = mapTimeframe(tf, market === "forex");
-
-  // TwelveData mapping
-  const mapping = {
-    "1m": "1min",
-    "3m": "5min",   // TwelveData does NOT support 3m
-    "5m": "5min",
-    "15m": "15min",
-    "1h": "1h",
-    "1d": "1day"
-  };
-
-  return mapping[tf] || "1min";
-}
-
-/* ============================================================
-   ASSETS
+   ASSET LIST
 ============================================================ */
 const cryptoAssets = {
   BTCUSDT: "Bitcoin (BTC/USDT)",
@@ -46,11 +10,11 @@ const cryptoAssets = {
 };
 
 const forexAssets = {
-  "EUR/USD": "EUR/USD",
-  "GBP/USD": "GBP/USD",
-  "USD/JPY": "USD/JPY",
-  "AUD/USD": "AUD/USD",
-  "USD/CAD": "USD/CAD"
+  "EURUSD": "EUR/USD",
+  "GBPUSD": "GBP/USD",
+  "USDJPY": "USD/JPY",
+  "AUDUSD": "AUD/USD",
+  "USDCAD": "USD/CAD"
 };
 
 function updateAssetOptions() {
@@ -78,23 +42,23 @@ logo.addEventListener("click", () => {
 });
 
 /* ============================================================
-   Analyze Button Color Toggle
+   ANALYZE BUTTON COLOR TOGGLE
 ============================================================ */
 let analyzeColors = [
-  "linear-gradient(90deg,#009dff,#007dff)",
-  "linear-gradient(90deg,#22c55e,#16a34a)",
-  "linear-gradient(90deg,#a855f7,#7e22ce)",
-  "linear-gradient(90deg,#ef4444,#dc2626)"
+  "linear-gradient(90deg,#009dff,#007dff)", // blue
+  "linear-gradient(90deg,#22c55e,#16a34a)", // green
+  "linear-gradient(90deg,#a855f7,#7e22ce)", // purple
+  "linear-gradient(90deg,#ef4444,#dc2626)"  // red
 ];
 let colorIndex = 0;
 
-document.getElementById("btnRefresh").addEventListener("click", () => {
+function toggleAnalyzeButton() {
   colorIndex = (colorIndex + 1) % analyzeColors.length;
-  document.getElementById("btnRefresh").style.background = analyzeColors[colorIndex];
-});
+  document.getElementById("analyzeBtn").style.background = analyzeColors[colorIndex];
+}
 
 /* ============================================================
-   INDICATOR FUNCTIONS
+   TECHNICAL INDICATOR FUNCTIONS
 ============================================================ */
 function SMA(arr, p) {
   if (!arr || arr.length < p) return null;
@@ -102,37 +66,49 @@ function SMA(arr, p) {
 }
 
 function EMA(prices, period) {
-  if (!prices.length) return [];
+  if (!prices || prices.length === 0) return [];
   const k = 2/(period+1);
   let ema = [prices[0]];
-  for (let i=1;i<prices.length;i++)
+  for (let i=1;i<prices.length;i++) {
     ema.push(prices[i]*k + ema[i-1]*(1-k));
+  }
   return ema;
 }
 
 function RSI(prices, period=14) {
-  if (prices.length < 2) return 50;
-  let gains=[], losses=[];
-  for (let i=1;i<prices.length;i++){
-    let d = prices[i]-prices[i-1];
+  if (!prices || prices.length < 2) return 50;
+
+  let gains = [];
+  let losses = [];
+
+  for (let i=1; i<prices.length; i++){
+    let d = prices[i] - prices[i-1];
     gains.push(d>0?d:0);
     losses.push(d<0?Math.abs(d):0);
   }
+
   if (gains.length < period) return 50;
+
   let avgG = SMA(gains, period);
   let avgL = SMA(losses, period);
+
   if (avgL === 0) return 100;
-  let RS = avgG/avgL;
-  return 100 - (100/(1+RS));
+
+  let RS = avgG / avgL;
+  return 100 - (100 / (1 + RS));
 }
 
 function ATR(ohlc, period=14){
   if (!ohlc || ohlc.length < period+1) return 0;
-  let trs=[];
-  for(let i=1;i<ohlc.length;i++){
-    let h=ohlc[i].high, l=ohlc[i].low, pc=ohlc[i-1].close;
+
+  let trs = [];
+  for(let i=1; i<ohlc.length; i++){
+    let h = ohlc[i].high;
+    let l = ohlc[i].low;
+    let pc = ohlc[i-1].close;
     trs.push(Math.max(h-l, Math.abs(h-pc), Math.abs(l-pc)));
   }
+
   return SMA(trs, period) || 0;
 }
 
@@ -142,256 +118,225 @@ function ATR(ohlc, period=14){
 function MACD(prices, fast=12, slow=26, signal=9) {
   const emaFast = EMA(prices, fast);
   const emaSlow = EMA(prices, slow);
+  const len = Math.min(emaFast.length, emaSlow.length);
+  let macd = [];
 
-  let macd = emaSlow.map((_,i) => emaFast[i] - emaSlow[i]);
-  const sig = EMA(macd, signal);
+  for (let i=0; i<len; i++) {
+    macd.push(emaFast[i] - emaSlow[i]);
+  }
 
-  return { macd, signal: sig };
+  const sigLine = EMA(macd, signal);
+  return { macd, signal: sigLine };
 }
 
 function detectMACDCross(macd, sig) {
   let arrows = [];
-  for (let i=1;i<macd.length;i++){
-    if (macd[i-1] < sig[i-1] && macd[i] > sig[i]) arrows.push({ index:i, type:"BUY" });
-    if (macd[i-1] > sig[i-1] && macd[i] < sig[i]) arrows.push({ index:i, type:"SELL" });
+
+  for (let i=1; i<macd.length && i<sig.length; i++) {
+    if (macd[i-1] < sig[i-1] && macd[i] > sig[i])
+      arrows.push({ index: i, type: "BUY" });
+
+    if (macd[i-1] > sig[i-1] && macd[i] < sig[i])
+      arrows.push({ index: i, type: "SELL" });
   }
+
   return arrows;
 }
+
 /* ============================================================
-   TIMEFRAME BUTTON CLICK FIX
-============================================================ */
-const tfButtons = document.querySelectorAll(".tf-btn");
-
-tfButtons.forEach(btn => {
-  btn.addEventListener("click", () => {
-
-    // Remove active from all
-    tfButtons.forEach(b => b.classList.remove("active"));
-
-    // Add active to clicked
-    btn.classList.add("active");
-
-    // Re-analyze instantly
-    generateSignal();
-  });
-});
-/* ============================================================
-   CHART TYPE
+   CHART TYPE TRACKING
 ============================================================ */
 let chartType = "candles";
 
-document.getElementById("btnCross").onclick = () => {
-  chartType = "candles";
+function setChartType(type) {
+  chartType = type;
   generateSignal();
-};
-document.getElementById("btnIndicators").onclick = () => {
-  chartType = chartType === "line" ? "area" : "line";
-  generateSignal();
-};
-
+}
 
 /* ============================================================
    RENDER CHART
 ============================================================ */
-function renderChart(ohlc, ma5, ma20, rsiArr) {
-  document.getElementById("tvChart").innerHTML = "";
+function renderChart(ohlc, ma5, ma20, rsiArr, macdArrows) {
+  const container = document.getElementById("tvChart");
+  container.innerHTML = "";
 
-  const chart = LightweightCharts.createChart(document.getElementById("tvChart"), {
-    layout:{ background:{color:"#0d1117"}, textColor:"#bbb" },
+  const chart = LightweightCharts.createChart(container, {
+    layout:{ background:{color:"#0d1117"}, textColor:"#ccc" },
     grid:{ vertLines:{color:"#222"}, horzLines:{color:"#222"} },
-    width: document.body.clientWidth,
-    height: 360
+    width: container.clientWidth,
+    height: 380
   });
 
-  let series;
+  let mainSeries;
 
   if (chartType === "candles") {
-    series = chart.addCandlestickSeries({
-      upColor:"#22c55e",
-      downColor:"#ef4444",
-      borderUpColor:"#22c55e",
-      borderDownColor:"#ef4444"
+    mainSeries = chart.addCandlestickSeries({
+      upColor:"#22c55e", downColor:"#ef4444",
+      borderUpColor:"#22c55e", borderDownColor:"#ef4444"
     });
-    series.setData(ohlc);
+    mainSeries.setData(ohlc);
   }
 
   if (chartType === "line") {
-    const list = ohlc.map(c=>({ time:c.time, value:c.close }));
-    series = chart.addLineSeries({ color:"#4ea8ff", lineWidth:2 });
-    series.setData(list);
+    let lineData = ohlc.map(c => ({ time:c.time, value:c.close }));
+    mainSeries = chart.addLineSeries({ color:"#4ea8ff", lineWidth:2 });
+    mainSeries.setData(lineData);
   }
 
   if (chartType === "area") {
-    const arr = ohlc.map(c=>({ time:c.time, value:c.close }));
-    series = chart.addAreaSeries({
+    let areaData = ohlc.map(c => ({ time:c.time, value:c.close }));
+    mainSeries = chart.addAreaSeries({
       topColor:"rgba(0,122,255,0.4)",
       bottomColor:"rgba(0,122,255,0.05)",
-      lineColor:"#4ea8ff"
+      lineColor:"#4ea8ff",
+      lineWidth:2
     });
-    series.setData(arr);
+    mainSeries.setData(areaData);
   }
 
-  /* Moving Averages */
-  chart.addLineSeries({ color:"#3b82f6", lineWidth:2 })
-       .setData(ohlc.map((c,i)=>({ time:c.time, value:ma5[i] })));
+  /* MOVING AVERAGES */
+  const ma5Data = ohlc.map((c,i)=>({ time:c.time, value: ma5[i] || null }));
+  const ma20Data = ohlc.map((c,i)=>({ time:c.time, value: ma20[i] || null }));
 
-  chart.addLineSeries({ color:"#a855f7", lineWidth:2 })
-       .setData(ohlc.map((c,i)=>({ time:c.time, value:ma20[i] })));
+  const ma5Series = chart.addLineSeries({ color:"#3b82f6", lineWidth:2 });
+  const ma20Series = chart.addLineSeries({ color:"#a855f7", lineWidth:2 });
 
-  /* RSI chart */
-  document.getElementById("rsiChart").innerHTML = "";
-  const rsiChart = LightweightCharts.createChart(
-    document.getElementById("rsiChart"),
-    {
-      layout:{ background:{color:"#0d1117"}, textColor:"#ccc" },
-      width: document.body.clientWidth,
-      height: 140
-    }
-  );
+  ma5Series.setData(ma5Data.filter(t=>t.value));
+  ma20Series.setData(ma20Data.filter(t=>t.value));
 
-  rsiChart.addLineSeries({
-    color:"#facc15", lineWidth:2
-  }).setData(ohlc.map((c,i)=>({ time:c.time, value:rsiArr[i] })));
+  /* MACD ARROWS */
+  if (chartType === "candles") {
+    const markers = macdArrows.map(a => {
+      const candle = ohlc[a.index];
+      if (!candle) return null;
+      return {
+        time: candle.time,
+        position: a.type==="BUY" ? 'belowBar' : 'aboveBar',
+        color: a.type==="BUY" ? '#22c55e' : '#ef4444',
+        shape: a.type==="BUY" ? 'arrowUp' : 'arrowDown',
+        text: a.type
+      };
+    }).filter(Boolean);
+
+    mainSeries.setMarkers(markers);
+  }
+
+  /* RSI CHART */
+  const rsiBox = document.getElementById("rsiChart");
+  rsiBox.innerHTML = "";
+
+  const rsiChart = LightweightCharts.createChart(rsiBox, {
+    layout:{ background:{color:"#0d1117"}, textColor:"#ccc" },
+    width:rsiBox.clientWidth,
+    height:140
+  });
+
+  const rsiLine = rsiChart.addLineSeries({ color:"#facc15", lineWidth:2 });
+  const rsiData = ohlc.map((c,i)=>({ time:c.time, value: rsiArr[i] || null }));
+  rsiLine.setData(rsiData.filter(p=>p.value));
 }
 
 /* ============================================================
-   MAIN ANALYZER — NOW 100% FIXED
+   MAIN SIGNAL FUNCTION
 ============================================================ */
 async function generateSignal(){
-  const market = document.getElementById("market").value;
-  const asset = document.getElementById("asset").value;
-  const tf = document.querySelector(".tf-btn.active")?.dataset.tf || "1m";
+  let market = document.getElementById("market").value;
+  let asset = document.getElementById("asset").value;
+  let tf = document.getElementById("timeframe").value;
 
-  /* Timeframe Conversion FIX */
-  const interval = mapTimeframe(tf, market === "forex");
-
-  let url = "";
-  let parseAsForex = false;
-
-  /* Crypto (Binance) */
-  if (market === "crypto") {
-    url =
-      `https://api.binance.com/api/v3/klines?symbol=${asset}` +
-      `&interval=${interval}&limit=150`;
-  }
-
-  /* Forex (TwelveData) */
-  if (market === "forex") {
-    url =
-      `https://api.twelvedata.com/time_series?symbol=${asset}` +
-      `&interval=${interval}&apikey=${TWELVE_KEY}` +
-      `&outputsize=150`;
-    parseAsForex = true;
-  }
+  const tfMap = { "5s":"1m", "30s":"1m", "1m":"1m", "3m":"3m", "5m":"5m" };
+  let interval = tfMap[tf];
 
   try {
+    const url=`https://api.binance.com/api/v3/klines?symbol=${asset}&interval=${interval}&limit=120`;
     const res = await fetch(url);
     const data = await res.json();
 
-    let ohlc;
+    const ohlc = data.map(p => ({
+      time: p[0]/1000,
+      open:+p[1], high:+p[2], low:+p[3], close:+p[4]
+    }));
 
-    /* PARSE TWELVEDATA */
-    if (parseAsForex) {
-      const values = data.values.reverse();
-      ohlc = values.map(v => ({
-        time: new Date(v.datetime).getTime()/1000,
-        open:+v.open,
-        high:+v.high,
-        low:+v.low,
-        close:+v.close
-      }));
-    }
+    const prices = ohlc.map(v=>v.close);
 
-    /* PARSE BINANCE */
-    else {
-      ohlc = data.map(p => ({
-        time:p[0]/1000,
-        open:+p[1],
-        high:+p[2],
-        low:+p[3],
-        close:+p[4]
-      }));
-    }
-
-    const prices = ohlc.map(c=>c.close);
-
-    /* Indicators */
-    const ma5  = prices.map((_,i)=> i>=4  ? SMA(prices.slice(0,i+1),5)  : null);
-    const ma20 = prices.map((_,i)=> i>=19 ? SMA(prices.slice(0,i+1),20) : null);
+    /* INDICATORS */
+    const ma5  = prices.map((_,i)=> (i+1)>=5  ? SMA(prices.slice(0,i+1),5)  : null);
+    const ma20 = prices.map((_,i)=> (i+1)>=20 ? SMA(prices.slice(0,i+1),20) : null);
 
     const ema9  = EMA(prices, 9);
     const ema21 = EMA(prices, 21);
 
-    const rsiArr = prices.map((_,i)=> i>=13 ? RSI(prices.slice(0,i+1)) : null);
+    const rsiArr = prices.map((_,i)=> (i+1)>=14 ? RSI(prices.slice(0,i+1),14) : null);
 
     const macdObj = MACD(prices);
+    const arrows = detectMACDCross(macdObj.macd, macdObj.signal);
 
-    const atr = ATR(ohlc);
+    /* TP / SL */
     const current = prices.at(-1);
+    const atr = ATR(ohlc, 14);
+    const SL = (current - atr*1.5).toFixed(4);
+    const TP = (current + atr*2).toFixed(4);
 
-    const SL = (current - atr*1.5).toFixed(5);
-    const TP = (current + atr*2).toFixed(5);
+    /* SIGNAL LOGIC */
+    let signal="HOLD", strength="Weak";
 
-    /* Generate Signal */
-    let signal = "HOLD";
-    let strength = "Weak";
-
-    const rsi = rsiArr.at(-1);
-    const e9 = ema9.at(-1);
-    const e21 = ema21.at(-1);
-
-    if (e9 > e21 && rsi > 55) {
-      signal = "BUY";
-      strength = rsi>65 ? "Strong" : "Moderate";
+    if (ema9.at(-1) > ema21.at(-1) && rsiArr.at(-1) > 55) {
+      signal="BUY"; 
+      strength = rsiArr.at(-1) > 65 ? "Strong" : "Moderate";
     }
-    else if (e9 < e21 && rsi < 45) {
-      signal = "SELL";
-      strength = rsi<35 ? "Strong" : "Moderate";
+    else if (ema9.at(-1) < ema21.at(-1) && rsiArr.at(-1) < 45) {
+      signal="SELL";
+      strength = rsiArr.at(-1) < 35 ? "Strong" : "Moderate";
     }
 
-    const colorClass =
+    let colorClass =
       signal==="BUY" ? "buy" :
       signal==="SELL" ? "sell" : "hold";
 
-    /* UPDATE UI */
-    document.getElementById("infoAsset").innerHTML = `${asset} — ${tf}`;
-    document.getElementById("infoPrice").innerHTML = `$${current.toFixed(5)}`;
+    /* INSERT INTO STATS BOX ABOVE CHART */
+    document.getElementById("statsBox").innerHTML = `
+      <div><b>${asset}</b> — <b>${tf}</b></div>
 
-    document.getElementById("rsiVal").innerHTML = rsi.toFixed(2);
-    document.getElementById("ema9Val").innerHTML = e9.toFixed(5);
-    document.getElementById("ema21Val").innerHTML = e21.toFixed(5);
+      <div style="margin-top:6px;">
+        Price: <b>$${current.toFixed(4)}</b> |
+        RSI: <b>${(rsiArr.at(-1) || 0).toFixed(2)}</b>
+      </div>
 
-    document.getElementById("slVal").innerHTML = SL;
-    document.getElementById("tpVal").innerHTML = TP;
+      <div style="margin-top:6px;">
+        SL: <b class="sell">${SL}</b> |
+        TP: <b class="buy">${TP}</b>
+      </div>
 
-    document.getElementById("macdVal").innerHTML =
-      macdObj.macd.at(-1).toFixed(5);
+      <div style="margin-top:6px;">
+        EMA9: <b>${ema9.at(-1).toFixed(4)}</b> |
+        EMA21: <b>${ema21.at(-1).toFixed(4)}</b>
+      </div>
 
-    let badge = document.getElementById("signalBadge");
-    badge.className = "signal-badge " + colorClass;
-    badge.innerHTML = `${signal} (${strength})`;
+      <div class="signal ${colorClass}" style="margin-top:10px;">
+        ${signal} — ${strength}
+      </div>
+    `;
 
-    renderChart(ohlc, ma5, ma20, rsiArr);
+    /* RENDER THE CHART */
+    renderChart(ohlc, ma5, ma20, rsiArr, arrows);
 
-  } catch (err) {
-    console.error("Data load error:", err);
-    document.getElementById("infoPrice").innerHTML =
-      "<span style='color:red'>Error</span>";
+  } catch(err){
+    console.error(err);
+    document.getElementById("statsBox").innerHTML =
+      `<span style="color:red;">Error fetching data</span>`;
   }
 }
 
 /* ============================================================
    AUTO REFRESH
 ============================================================ */
-let autoInterval=null;
+let autoRefreshInterval=null;
 
-document.getElementById("autoRefresh").addEventListener("change", ()=>{
-  if (autoInterval) clearInterval(autoInterval);
-  if (document.getElementById("autoRefresh").checked){
+function toggleAutoRefresh(){
+  if(document.getElementById("autoRefresh").checked){
     generateSignal();
-    autoInterval = setInterval(generateSignal, 1000);
+    autoRefreshInterval=setInterval(generateSignal,1000);
+  } else {
+    clearInterval(autoRefreshInterval);
   }
-});
-
-/* First load */
-generateSignal();
+}
