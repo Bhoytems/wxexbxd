@@ -263,7 +263,7 @@ document.getElementById("btnRefresh").onclick=()=>generateSignal();
 document.getElementById("autoRefresh").onchange=e=>{
   clearInterval(autoTimer);
   if(e.target.checked){
-    autoTimer=setInterval(generateSignal,5000);
+    autoTimer=setInterval(generateSignal,1000);
     generateSignal();
   }
 };
