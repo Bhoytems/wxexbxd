@@ -1,118 +1,189 @@
-/* ===== base & safe area ===== */
 :root{
-  --bg-1: #05070d;
-  --bg-2: #0d1117;
-  --card-bg: rgba(15,20,30,0.84);
-  --glass: rgba(255,255,255,0.03);
-  --accent: #00aaff;
-  --muted: #8a98a8;
+  --bg1:#05070d;
+  --bg2:#0d1117;
+  --accent:#00aaff;
+  --muted:#8892a0;
+  --glass:rgba(255,255,255,0.04);
 }
 
-html,body{
-  height:100%;
-  margin:0;
-  padding:0;
-  font-family: "Poppins", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-  background: linear-gradient(135deg,var(--bg-1),var(--bg-2));
-  color: #e6edf3;
+html, body{
+  margin:0;padding:0;
+  background:linear-gradient(135deg,var(--bg1),var(--bg2));
+  font-family:"Poppins",sans-serif;
+  color:#e6edf3;
   -webkit-font-smoothing:antialiased;
-  -moz-osx-font-smoothing:grayscale;
-  box-sizing:border-box;
 }
 
-/* account for mobile safe area (Telegram webview) */
-body { padding: env(safe-area-inset-top) 12px env(safe-area-inset-bottom); }
+body{
+  padding:env(safe-area-inset-top) 12px env(safe-area-inset-bottom);
+}
 
-/* header */
 .app-header{
   display:flex;
-  gap:12px;
   align-items:center;
-  justify-content:flex-start;
+  gap:14px;
+  margin:10px auto;
   max-width:1100px;
-  margin: 8px auto;
-  padding: 6px 8px;
 }
 
-.logo-wrap { cursor:pointer; display:flex; align-items:center; justify-content:center; }
 .logo-circle{
-  width:84px; height:84px; border-radius:50%;
+  width:85px; height:85px;
+  border-radius:50%;
   display:flex; align-items:center; justify-content:center;
-  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-  border: 2px solid rgba(0,170,255,0.16);
-  box-shadow: 0 8px 30px rgba(0,170,255,0.07), inset 0 -8px 20px rgba(0,0,0,0.4);
-  color: var(--accent);
+  background:rgba(255,255,255,0.02);
+  border:2px solid rgba(0,170,255,0.25);
+  color:var(--accent);
   font-weight:700;
-  letter-spacing:1px;
-  font-size:16px;
-  transition: transform .35s ease;
-  will-change: transform;
-  animation: spinLogo 6s linear infinite;
-  user-select: none;
+  animation:spin 6s linear infinite;
+}
+.logo-circle.paused{ animation-play-state:paused; }
+
+@keyframes spin{
+  from{ transform:rotate(0deg);}
+  to{ transform:rotate(360deg);}
 }
 
-/* paused spin */
-.logo-circle.paused { animation-play-state: paused; transform: scale(0.98); }
-
-/* spin animation */
-@keyframes spinLogo {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+.app-title h1{
+  margin:0; font-size:22px; color:#8fd0ff;
+}
+.subtitle{
+  margin:0; font-size:12px; color:var(--muted);
 }
 
-.app-title h1 { margin:0; font-size:18px; color:#8fd0ff; }
-.app-title .subtitle { margin:0; font-size:12px; color:var(--muted); }
-
-/* toolbar */
 .toolbar{
-  display:flex; justify-content:space-between; align-items:center;
-  gap:8px; margin: 6px auto; max-width:1100px;
-  padding:8px; border-radius:12px; background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.02);
+  display:flex; justify-content:space-between; flex-wrap:wrap;
+  gap:10px; padding:10px;
+  background:rgba(255,255,255,0.02);
+  border:1px solid rgba(255,255,255,0.03);
+  border-radius:12px;
+  max-width:1100px;
+  margin:auto;
 }
-.tf-group{ display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
-.tf-btn{
-  padding:8px 10px; background:transparent; border:1px solid rgba(255,255,255,0.04);
-  border-radius:8px; color:#cfeeff; font-size:13px; cursor:pointer;
-}
-.tf-btn.active{ background: linear-gradient(90deg,#0078ff,#00b0ff); color:#00101a; border-color:transparent; box-shadow:0 6px 18px rgba(0,160,255,0.12); transform:translateY(-1px); }
-.tools{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-.tools button{ padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.04); background:transparent; color:#dff3ff; cursor:pointer; font-size:13px; }
-.auto-label{ color:var(--muted); font-size:13px; display:flex; gap:6px; align-items:center; }
 
-/* main area */
+.tf-group{ display:flex; gap:6px; flex-wrap:wrap; }
+.tf-btn{
+  padding:7px 10px;
+  border:1px solid rgba(255,255,255,0.05);
+  border-radius:8px;
+  background:transparent;
+  color:#cfeeff;
+}
+.tf-btn.active{
+  background:linear-gradient(90deg,#0078ff,#00b0ff);
+  color:#001824;
+  border:none;
+  box-shadow:0 4px 16px rgba(0,160,255,0.2);
+}
+
+.tools button{
+  padding:7px 10px;
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,0.05);
+  background:transparent;
+  color:#e6edf3;
+}
+.auto-label{
+  color:#cfeeff;
+  font-size:13px;
+  display:flex; align-items:center; gap:5px;
+}
+
 .main-card{
-  max-width:1100px; margin: 10px auto; padding:12px;
-  background: var(--card-bg); border-radius:16px; box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  margin:14px auto;
+  max-width:1100px;
+  background:rgba(15,20,30,0.85);
+  border-radius:18px;
+  padding:16px;
   border:1px solid rgba(255,255,255,0.03);
 }
 
-/* controls row */
-.controls-row{ display:flex; gap:8px; align-items:center; justify-content:space-between; flex-wrap:wrap; padding:6px 4px; }
-.controls-row select{ padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,0.04); background: rgba(0,0,0,0.35); color:#e6edf3; }
-.compact-stats{ display:flex; gap:12px; align-items:center; }
-#priceText{ color: #9be7a4; font-weight:600; }
-.signal{ padding:6px 10px; border-radius:8px; font-weight:700; font-size:14px; }
+.controls-row{
+  display:flex; justify-content:space-between;
+  gap:8px; flex-wrap:wrap;
+}
 
-/* charts: make them take majority of screen space */
-.charts{ display:flex; flex-direction:column; gap:10px; margin-top:8px; }
-.chart-panel{ width:100%; min-height:260px; border-radius: 12px; overflow:hidden; background: rgba(0,0,0,0.02); border:1px solid rgba(255,255,255,0.02); }
-.chart-panel.small{ min-height:110px; }
+.controls-row select{
+  padding:10px;
+  background:rgba(0,0,0,0.3);
+  border:1px solid rgba(255,255,255,0.05);
+  border-radius:8px;
+  color:#fff;
+}
 
-/* output panel */
-.output-panel{ margin-top:10px; padding:10px; border-radius:10px; background: rgba(255,255,255,0.01); color:var(--muted); font-size:13px; }
-.info-rows p{ margin:6px 0; }
+/* PREMIUM INFO BLOCK (ABOVE CHART) */
+.premium-info{
+  margin-top:14px;
+  padding:16px;
+  background:rgba(255,255,255,0.03);
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,0.05);
+}
 
-/* footer */
-.app-footer{ text-align:center; margin:14px auto; color:var(--muted); font-size:12px; }
+.info-header{
+  display:flex; justify-content:space-between;
+  align-items:center;
+}
 
-/* responsive adjustments for narrow screens (Telegram webapp portrait) */
+.info-asset{
+  font-size:18px;
+  font-weight:700;
+  color:#aee1ff;
+}
+
+.signal-badge{
+  padding:6px 12px;
+  border-radius:8px;
+  font-weight:700;
+  font-size:14px;
+}
+.signal-badge.buy{ background:#22ff82; color:#00200d; }
+.signal-badge.sell{ background:#ff4d4d; color:#270000; }
+.signal-badge.hold{ background:#636e7b; color:#000; }
+
+.info-price{
+  margin-top:8px;
+  font-size:26px;
+  font-weight:700;
+  color:#fff;
+}
+
+.info-grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:8px;
+  margin-top:12px;
+  font-size:15px;
+}
+
+/* Charts */
+.charts{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  margin-top:16px;
+}
+.chart-panel{
+  width:100%;
+  min-height:300px;
+  background:rgba(255,255,255,0.02);
+  border-radius:12px;
+}
+.chart-panel.small{
+  min-height:120px;
+}
+
+.app-footer{
+  text-align:center;
+  color:var(--muted);
+  margin-top:16px;
+  font-size:12px;
+}
+
+/* Mobile */
 @media (max-width:480px){
-  .logo-circle{ width:70px; height:70px; font-size:14px; }
-  .toolbar{ padding:6px; gap:6px; }
-  .tf-btn{ padding:6px 8px; font-size:12px; }
-  .controls-row{ gap:6px; }
-  .chart-panel{ min-height:300px; }
-  .chart-panel.small{ min-height:120px; }
-  .main-card{ padding:10px; border-radius:12px; }
-    }
+  .info-grid{
+    grid-template-columns:1fr 1fr;
+    font-size:14px;
+  }
+  .chart-panel{ min-height:260px; }
+}
