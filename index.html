@@ -1,73 +1,91 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Pro v4.2 – Analyzer</title>
-<link rel="stylesheet" href="styles.css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <meta name="theme-color" content="#0d1117" />
+  <title>Pro v4.3 – Signal Analyzer</title>
 
-<!-- TradingView Toolbar -->
-<script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
+  <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
 
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 
-<!-- ======== HEADER WITH LOGO ========= -->
-<div class="header">
-    <div class="logo-wrap">
-        <img src="https://ik.imagekit.io/fnedxfxsk/thymagnifico"
-             class="logo-circle" id="logoCircle">
-    </div>
-</div>
+<header class="app-header">
+  <div class="logo-wrap" id="logoWrap">
+    <div id="logoCircle" class="logo-circle">LOGO</div>
+  </div>
 
-<!-- ======= MAIN CONTAINER ======= -->
-<div class="container">
+  <div class="app-title">
+    <h1>Pro v4.3</h1>
+    <p class="subtitle">Crypto + Forex Signal Analyzer</p>
+  </div>
+</header>
 
-    <h2 class="title">🚀 Pro v4.2 Signal Analyzer</h2>
-    <p class="subtitle">MACD • RSI • MA5/20 • TP/SL • Auto Refresh</p>
+<!-- TradingView toolbar -->
+<nav class="toolbar" id="toolbar">
+  <div class="tf-group">
+    <button class="tf-btn active" data-tf="1m">1m</button>
+    <button class="tf-btn" data-tf="3m">3m</button>
+    <button class="tf-btn" data-tf="5m">5m</button>
+    <button class="tf-btn" data-tf="15m">15m</button>
+    <button class="tf-btn" data-tf="1h">1h</button>
+    <button class="tf-btn" data-tf="1d">1d</button>
+  </div>
 
-    <!-- CONTROLS -->
-    <div class="controls">
-        <select id="market" onchange="updateAssetOptions()">
-            <option value="crypto">Crypto</option>
-            <option value="forex">Forex</option>
-        </select>
+  <div class="tools">
+    <button id="btnCross">Crosshair</button>
+    <button id="btnIndicators">Indicators</button>
+    <button id="btnRefresh">Analyze</button>
+    <label class="auto-label"><input type="checkbox" id="autoRefresh"> Auto</label>
+  </div>
+</nav>
 
-        <select id="asset"></select>
+<main class="main-card">
 
-        <select id="timeframe">
-            <option value="5s">5 Seconds</option>
-            <option value="30s">30 Seconds</option>
-            <option value="1m" selected>1 Minute</option>
-            <option value="3m">3 Minutes</option>
-            <option value="5m">5 Minutes</option>
-        </select>
+  <!-- Controls: Market + Asset -->
+  <div class="controls-row">
+    <select id="market">
+      <option value="crypto">Crypto</option>
+      <option value="forex">Forex</option>
+    </select>
 
-        <button id="analyzeBtn" onclick="toggleAnalyzeButton(); generateSignal();">
-            Analyze
-        </button>
+    <select id="asset"></select>
+  </div>
 
-        <label class="auto">
-            <input type="checkbox" id="autoRefresh" onchange="toggleAutoRefresh()"> Auto
-        </label>
-    </div>
+  <!-- PREMIUM INFO BLOCK ABOVE CHART -->
+  <section class="premium-info" id="premiumInfo">
 
-    <!-- ====== STATS ABOVE CHART (STYLE B) ====== -->
-    <div id="statsBox" class="stats-box">
-        <!-- Filled dynamically by JS -->
-    </div>
-
-    <!-- ======= CHART AREA ======= -->
-    <div id="toolbar" class="toolbar">
-        <button onclick="setChartType('candles')">Candles</button>
-        <button onclick="setChartType('line')">Line</button>
-        <button onclick="setChartType('area')">Area</button>
+    <div class="info-header">
+      <div class="info-asset" id="infoAsset">BTC/USDT — 1m</div>
+      <div class="signal-badge hold" id="signalBadge">HOLD</div>
     </div>
 
-    <div id="tvChart"></div>
-    <div id="rsiChart"></div>
+    <div class="info-price" id="infoPrice">$0.0000</div>
 
-</div>
+    <div class="info-grid">
+      <div><b>RSI:</b> <span id="rsiVal">—</span></div>
+      <div><b>EMA 9:</b> <span id="ema9Val">—</span></div>
+      <div><b>EMA 21:</b> <span id="ema21Val">—</span></div>
+      <div><b>MACD:</b> <span id="macdVal">—</span></div>
+      <div><b>SL:</b> <span id="slVal">—</span></div>
+      <div><b>TP:</b> <span id="tpVal">—</span></div>
+    </div>
+
+  </section>
+
+  <!-- Full-width charts -->
+  <section class="charts">
+    <div id="tvChart" class="chart-panel"></div>
+    <div id="rsiChart" class="chart-panel small"></div>
+  </section>
+
+</main>
+
+<footer class="app-footer">
+  <small>MAGNIFICO © 2025</small>
+</footer>
 
 <script src="app.js"></script>
 </body>
