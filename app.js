@@ -361,7 +361,7 @@ document.getElementById("autoRefresh").addEventListener("change", ()=>{
   if (autoInterval) clearInterval(autoInterval);
   if (document.getElementById("autoRefresh").checked){
     generateSignal();
-    autoInterval = setInterval(generateSignal, 5000);
+    autoInterval = setInterval(generateSignal, 10000);
   }
 });
 
