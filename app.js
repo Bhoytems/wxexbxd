@@ -1,354 +1,291 @@
-// ===========================
-// Pro v4.2 App JS
-// ===========================
-
-/* ---------- Global state / chart refs ---------- */
-let chart = null;
-let candlesSeries = null;
-let ma5Series = null;
-let ma20Series = null;
-let rsiChart = null;
-let rsiSeries = null;
+/* ======== GLOBALS ======== */
+let chart, candlesSeries, ma5Series, ma20Series;
+let rsiChart, rsiSeries;
 let currentTF = "1m";
-let autoRefreshInterval = null;
-let autoEnabled = false;
-let useCrosshair = true;
-let indicatorsVisible = true;
+let autoTimer = null;
+let crosshairOn = true;
+let indicatorsOn = true;
 
-/* ---------- Element refs ---------- */
-const assetSel = document.getElementById("asset");
+/* ======== ELEMENTS ======== */
 const marketSel = document.getElementById("market");
-const priceText = document.getElementById("priceText");
-const signalBadge = document.getElementById("signalBadge");
-const infoRows = document.getElementById("infoRows");
-const tvContainer = document.getElementById("tvChart");
-const rsiContainer = document.getElementById("rsiChart");
-const logoCircle = document.getElementById("logoCircle");
-const logoWrap = document.getElementById("logoWrap");
+const assetSel  = document.getElementById("asset");
 
-/* ---------- Assets (same as original) ---------- */
+const infoAsset = document.getElementById("infoAsset");
+const infoPrice = document.getElementById("infoPrice");
+const rsiVal    = document.getElementById("rsiVal");
+const ema9Val   = document.getElementById("ema9Val");
+const ema21Val  = document.getElementById("ema21Val");
+const macdVal   = document.getElementById("macdVal");
+const slVal     = document.getElementById("slVal");
+const tpVal     = document.getElementById("tpVal");
+
+const signalBadge = document.getElementById("signalBadge");
+
+const logoCircle = document.getElementById("logoCircle");
+
+/* ======== ASSETS ======== */
 const cryptoAssets = {
-  BTCUSDT: "Bitcoin (BTC/USDT)",
-  ETHUSDT: "Ethereum (ETH/USDT)",
-  SOLUSDT: "Solana (SOL/USDT)",
-  DOGEUSDT: "Dogecoin (DOGE/USDT)",
-  ADAUSDT: "Cardano (ADA/USDT)"
+  BTCUSDT:"Bitcoin (BTC/USDT)",
+  ETHUSDT:"Ethereum (ETH/USDT)",
+  SOLUSDT:"Solana (SOL/USDT)",
+  DOGEUSDT:"Dogecoin (DOGE/USDT)",
+  ADAUSDT:"Cardano (ADA/USDT)"
 };
 const forexAssets = {
-  "EURUSD": "EUR/USD",
-  "GBPUSD": "GBP/USD",
-  "USDJPY": "USD/JPY",
-  "AUDUSD": "AUD/USD",
-  "USDCAD": "USD/CAD"
+  "EURUSD":"EUR/USD",
+  "GBPUSD":"GBP/USD",
+  "USDJPY":"USD/JPY",
+  "AUDUSD":"AUD/USD",
+  "USDCAD":"USD/CAD"
 };
 
-/* ---------- UI init ---------- */
-function updateAssetOptions(){
-  const isCrypto = marketSel.value === "crypto";
-  const group = isCrypto ? cryptoAssets : forexAssets;
+function fillAssets(){
+  const group = marketSel.value==="crypto" ? cryptoAssets : forexAssets;
   assetSel.innerHTML = "";
   Object.entries(group).forEach(([v,t])=>{
-    const opt = document.createElement("option");
-    opt.value = v;
-    opt.textContent = t;
-    assetSel.appendChild(opt);
+    const o=document.createElement("option");
+    o.value=v; o.textContent=t;
+    assetSel.appendChild(o);
   });
 }
-updateAssetOptions();
-marketSel.addEventListener("change", ()=>{ updateAssetOptions(); });
+fillAssets();
 
-/* ---------- trading toolbar handlers ---------- */
-document.querySelectorAll(".tf-btn").forEach(b=>{
-  b.addEventListener("click", (ev)=>{
-    document.querySelectorAll(".tf-btn").forEach(x=>x.classList.remove("active"));
-    b.classList.add("active");
-    currentTF = b.dataset.tf;
-    // Normalize to Binance interval map used in internal TF mapping
-    generateSignal();
-  });
-});
-
-document.getElementById("btnCross").addEventListener("click", ()=>{
-  useCrosshair = !useCrosshair;
-  document.getElementById("btnCross").textContent = useCrosshair ? "Crosshair" : "Cross off";
-  // lightweight-charts crosshair toggling is limited: we emulate by applyOptions
-  if (chart) chart.applyOptions({ localization: {}, crosshair: { mode: useCrosshair ? 0 : -1 }});
-});
-
-document.getElementById("btnIndicators").addEventListener("click", ()=>{
-  indicatorsVisible = !indicatorsVisible;
-  document.getElementById("btnIndicators").textContent = indicatorsVisible ? "Indicators" : "Ind off";
-  if (ma5Series) ma5Series.applyOptions({ visible: indicatorsVisible });
-  if (ma20Series) ma20Series.applyOptions({ visible: indicatorsVisible });
-  if (rsiChart) rsiChart.applyOptions({ visible: indicatorsVisible });
-});
-
-document.getElementById("btnRefresh").addEventListener("click", ()=>generateSignal());
-document.getElementById("autoRefresh").addEventListener("change",(e)=>{
-  autoEnabled = e.target.checked;
-  toggleAutoRefresh();
-});
-
-/* logo spin toggle */
-logoWrap.addEventListener("click", ()=>{
-  logoCircle.classList.toggle("paused");
-});
-
-/* ---------- Indicator helpers (from original) ---------- */
-function SMA(arr, p) {
-  if (!arr || arr.length < p) return null;
+/* ======== SMALL HELPERS ======== */
+function SMA(arr,p){
+  if(arr.length<p) return null;
   return arr.slice(-p).reduce((a,b)=>a+b,0)/p;
 }
-function EMA(prices, period) {
-  if (!prices || prices.length === 0) return [];
-  const k = 2/(period+1);
-  let ema = [prices[0]];
-  for (let i=1;i<prices.length;i++) ema.push(prices[i]*k + ema[i-1]*(1-k));
+function EMA(prices,period){
+  const k=2/(period+1);
+  const ema=[prices[0]];
+  for(let i=1;i<prices.length;i++){
+    ema.push(prices[i]*k+ema[i-1]*(1-k));
+  }
   return ema;
 }
-function RSI(prices, period=14) {
-  if (!prices || prices.length < 2) return 50;
-  let gains=[], losses=[];
-  for (let i=1;i<prices.length;i++){
-    let d = prices[i]-prices[i-1];
-    gains.push(d>0?d:0);
-    losses.push(d<0?Math.abs(d):0);
+function RSI(prices,period=14){
+  if(prices.length<2) return 50;
+  let gain=[],loss=[];
+  for(let i=1;i<prices.length;i++){
+    const d=prices[i]-prices[i-1];
+    gain.push(d>0?d:0);
+    loss.push(d<0?Math.abs(d):0);
   }
-  if (gains.length < period) return 50;
-  let avgG = SMA(gains, period), avgL = SMA(losses, period);
-  if (avgL === 0) return 100;
-  let RS = avgG/avgL;
-  return 100 - (100/(1+RS));
+  const avgG=SMA(gain,period), avgL=SMA(loss,period);
+  if(avgL===0) return 100;
+  const RS=avgG/avgL;
+  return 100-(100/(1+RS));
 }
-function ATR(ohlc, period=14){
-  if (!ohlc || ohlc.length < period+1) return 0;
-  let trs=[];
+function ATR(ohlc,period=14){
+  const trs=[];
   for(let i=1;i<ohlc.length;i++){
-    let h=ohlc[i].high, l=ohlc[i].low, pc=ohlc[i-1].close;
-    trs.push(Math.max(h-l, Math.abs(h-pc), Math.abs(l-pc)));
+    const h=ohlc[i].high, l=ohlc[i].low, pc=ohlc[i-1].close;
+    trs.push(Math.max(h-l,Math.abs(h-pc),Math.abs(l-pc)));
   }
-  return SMA(trs, period) || 0;
+  return SMA(trs,period) || 0;
 }
-function MACD(prices, fast=12, slow=26, signal=9) {
-  const emaFast = EMA(prices, fast);
-  const emaSlow = EMA(prices, slow);
-  const length = Math.min(emaFast.length, emaSlow.length);
-  let macd = [];
-  for (let i=0;i<length;i++) macd.push(emaFast[i] - emaSlow[i]);
-  const sigLine = EMA(macd, signal);
-  return { macd, signal: sigLine };
+function MACD(prices,fast=12,slow=26,signal=9){
+  const ef=EMA(prices,fast);
+  const es=EMA(prices,slow);
+  const len=Math.min(ef.length,es.length);
+  const mac=[];
+  for(let i=0;i<len;i++) mac.push(ef[i]-es[i]);
+  const sig=EMA(mac,signal);
+  return {macd:mac,signal:sig};
 }
-function detectMACDCross(macd, sig) {
-  let arrows = [];
-  for (let i=1;i<macd.length && i<sig.length;i++) {
-    if (macd[i-1] < sig[i-1] && macd[i] > sig[i]) arrows.push({ index: i, type: "BUY" });
-    if (macd[i-1] > sig[i-1] && macd[i] < sig[i]) arrows.push({ index: i, type: "SELL" });
+function detectMACD(macd,sig){
+  const arr=[];
+  for(let i=1;i<macd.length && i<sig.length;i++){
+    if(macd[i-1]<sig[i-1] && macd[i]>sig[i]) arr.push({i,type:"BUY"});
+    if(macd[i-1]>sig[i-1] && macd[i]<sig[i]) arr.push({i,type:"SELL"});
   }
-  return arrows;
+  return arr;
+}
+function tfToBinance(tf){
+  return tf;
 }
 
-/* ---------- Chart init / resize ---------- */
-function initCharts() {
-  // dispose existing charts by clearing containers (lightweight-charts singleton isn't heavy)
-  tvContainer.innerHTML = "";
-  rsiContainer.innerHTML = "";
+/* ======== CHART INIT ======== */
+function initCharts(){
+  document.getElementById("tvChart").innerHTML="";
+  document.getElementById("rsiChart").innerHTML="";
 
-  chart = LightweightCharts.createChart(tvContainer, {
-    layout:{ background:{color:"#0d1117"}, textColor:"#cbd5e1" },
-    grid:{ vertLines:{color:"#0b0b0b"}, horzLines:{color:"#0b0b0b"} },
-    width: tvContainer.clientWidth,
-    height: Math.max(260, Math.round(window.innerHeight * 0.45))
+  chart = LightweightCharts.createChart(document.getElementById("tvChart"),{
+    layout:{background:{color:"#0d1117"},textColor:"#ccc"},
+    grid:{vertLines:{color:"#1a1a1a"},horzLines:{color:"#1a1a1a"}},
+    width:document.getElementById("tvChart").clientWidth,
+    height:320
   });
-
   candlesSeries = chart.addCandlestickSeries({
     upColor:"#22c55e", downColor:"#ef4444",
     borderUpColor:"#22c55e", borderDownColor:"#ef4444"
   });
+  ma5Series = chart.addLineSeries({color:"#3b82f6",lineWidth:2,visible:true});
+  ma20Series = chart.addLineSeries({color:"#a855f7",lineWidth:2,visible:true});
 
-  ma5Series = chart.addLineSeries({ color:"#3b82f6", lineWidth:2, visible: indicatorsVisible });
-  ma20Series = chart.addLineSeries({ color:"#a855f7", lineWidth:2, visible: indicatorsVisible });
-
-  rsiChart = LightweightCharts.createChart(rsiContainer, {
-    layout:{ background:{color:"#0d1117"}, textColor:"#cbd5e1" },
-    width: rsiContainer.clientWidth,
-    height: Math.max(90, Math.round(window.innerHeight * 0.18))
+  rsiChart = LightweightCharts.createChart(document.getElementById("rsiChart"),{
+    layout:{background:{color:"#0d1117"},textColor:"#ccc"},
+    width:document.getElementById("rsiChart").clientWidth,
+    height:120
   });
-  rsiSeries = rsiChart.addLineSeries({ color:"#facc15", lineWidth:2, visible: indicatorsVisible });
-
-  // crosshair
-  chart.applyOptions({ crosshair: { mode: useCrosshair ? 0 : -1 }});
+  rsiSeries = rsiChart.addLineSeries({color:"#facc15",lineWidth:2});
 }
 
-/* adapt charts to new sizes on orientation/window change */
-window.addEventListener("resize", ()=>{
-  if (chart) {
-    chart.resize(tvContainer.clientWidth, Math.max(260, Math.round(window.innerHeight * 0.45)));
+window.addEventListener("resize",()=>{
+  if(chart){
+    chart.resize(document.getElementById("tvChart").clientWidth,320);
   }
-  if (rsiChart) {
-    rsiChart.resize(rsiContainer.clientWidth, Math.max(90, Math.round(window.innerHeight * 0.18)));
+  if(rsiChart){
+    rsiChart.resize(document.getElementById("rsiChart").clientWidth,120);
   }
 });
 
-/* ---------- Render chart function (similar to original) ---------- */
-function renderChart(ohlc, ma5, ma20, rsiArr, macdArrows) {
-  // init or re-init charts
-  if (!chart) initCharts();
-
-  candlesSeries.setData(ohlc);
-
-  // map ma arrays into series values aligned with ohlc times
-  const ma5Data = ohlc.map((c,i)=>({ time:c.time, value: (ma5[i] !== undefined ? ma5[i] : null) })).filter(d=>d.value!==null);
-  const ma20Data = ohlc.map((c,i)=>({ time:c.time, value: (ma20[i] !== undefined ? ma20[i] : null) })).filter(d=>d.value!==null);
-
-  ma5Series.setData(ma5Data);
-  ma20Series.setData(ma20Data);
-
-  // markers
-  const markers = macdArrows.map(a => {
-    const candle = ohlc[a.index];
-    if (!candle) return null;
-    const isBuy = a.type === "BUY";
-    return {
-      time: candle.time,
-      position: isBuy ? 'belowBar' : 'aboveBar',
-      color: isBuy ? '#22c55e' : '#ef4444',
-      shape: isBuy ? 'arrowUp' : 'arrowDown',
-      text: a.type
-    };
-  }).filter(Boolean);
-  candlesSeries.setMarkers(markers);
-
-  // RSI
-  const rsiData = ohlc.map((c,i)=>({ time: c.time, value: (rsiArr[i] !== undefined ? rsiArr[i] : null) })).filter(d=>d.value!==null);
-  rsiSeries.setData(rsiData);
-}
-
-/* ---------- TF mapping util (map toolbar TF to Binance interval) ---------- */
-function mapTFtoInterval(tf){
-  // minimal mapping comfortable for Binance endpoints (user can extend)
-  const map = {
-    "1m": "1m",
-    "3m": "3m",
-    "5m": "5m",
-    "15m":"15m",
-    "1h":"1h",
-    "1d":"1d"
-  };
-  return map[tf] || "1m";
-}
-
-/* ---------- MAIN SIGNAL FUNCTION (fetching + logic) ---------- */
+/* ======== MAIN SIGNAL FUNCTION ======== */
 async function generateSignal(){
-  const market = marketSel.value;
   const asset = assetSel.value;
   const tf = currentTF;
-  const out = infoRows;
 
-  out.innerHTML = `<p>⏳ Fetching ${asset} ${tf} ...</p>`;
+  const interval = tfToBinance(tf);
+  let url = `https://api.binance.com/api/v3/klines?symbol=${asset}&interval=${interval}&limit=200`;
 
-  try {
-    const interval = mapTFtoInterval(tf);
-    // handle forex assets by providing a synthetic data route or returning error.
-    // For Telegram webapp usage we assume crypto symbols (Binance) are common; for forex you may supply your own OHLC source.
-    let url;
-    if (market === "crypto") {
-      url = `https://api.binance.com/api/v3/klines?symbol=${asset}&interval=${interval}&limit=240`;
-    } else {
-      // For forex a simple fallback: use Binance symbol if pair matches or return error.
-      // We'll try symbol without slash (e.g., EURUSD). Binance often doesn't serve FX; user should replace with a provider.
-      url = `https://api.binance.com/api/v3/klines?symbol=${asset}&interval=${interval}&limit=240`;
-    }
+  try{
+    const r=await fetch(url);
+    const d=await r.json();
 
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Data fetch failed: ${res.status} ${res.statusText}`);
-    const data = await res.json();
+    const ohlc = d.map(x=>({
+      time:x[0]/1000,
+      open:+x[1],high:+x[2],low:+x[3],close:+x[4]
+    }));
 
-    const ohlc = data.map(p => ({ time: p[0]/1000, open: +p[1], high:+p[2], low:+p[3], close:+p[4] }));
     const prices = ohlc.map(v=>v.close);
 
-    // indicators (same logic)
-    const ma5 = prices.map((_,i)=> (i+1)>=5 ? SMA(prices.slice(0,i+1),5) : null );
-    const ma20 = prices.map((_,i)=> (i+1)>=20 ? SMA(prices.slice(0,i+1),20) : null );
-    const ema9 = EMA(prices, 9);
-    const ema21 = EMA(prices, 21);
-    const rsiArr = prices.map((_,i)=> (i+1)>=14 ? RSI(prices.slice(0,i+1),14) : null );
+    const ma5  = prices.map((_,i)=> (i>=4?SMA(prices.slice(0,i+1),5):null));
+    const ma20 = prices.map((_,i)=> (i>=19?SMA(prices.slice(0,i+1),20):null));
 
-    const macdObj = MACD(prices);
-    const arrows = detectMACDCross(macdObj.macd, macdObj.signal);
+    const ema9  = EMA(prices,9);
+    const ema21 = EMA(prices,21);
 
-    const current = prices.at(-1);
-    const atr = ATR(ohlc, 14);
-    const SL = (current - atr*1.5).toFixed(6);
-    const TP = (current + atr*2).toFixed(6);
+    const rsiArr = prices.map((_,i)=> (i>=14?RSI(prices.slice(0,i+1),14):null));
 
-    // signal decision (same as original)
-    let signal = "HOLD", strength = "Weak";
-    if (ema9.at(-1) !== undefined && ema21.at(-1) !== undefined && rsiArr.at(-1) !== null) {
-      if (ema9.at(-1) > ema21.at(-1) && rsiArr.at(-1) > 55) {
-        signal="BUY"; strength = rsiArr.at(-1)>65 ? "Strong" : "Moderate";
-      } else if (ema9.at(-1) < ema21.at(-1) && rsiArr.at(-1) < 45) {
-        signal="SELL"; strength = rsiArr.at(-1)<35 ? "Strong" : "Moderate";
-      }
+    const macObj = MACD(prices);
+    const arrows = detectMACD(macObj.macd,macObj.signal);
+
+    const cur = prices.at(-1);
+    const atr = ATR(ohlc,14);
+
+    const SL = cur-atr*1.5;
+    const TP = cur+atr*2;
+
+    /* === SIGNAL LOGIC === */
+    let sig="HOLD", strength="Weak";
+    const rsiNow = rsiArr.at(-1);
+    if(ema9.at(-1)>ema21.at(-1) && rsiNow>55){
+      sig="BUY"; strength=rsiNow>65?"Strong":"Moderate";
+    }else if(ema9.at(-1)<ema21.at(-1) && rsiNow<45){
+      sig="SELL"; strength=rsiNow<35?"Strong":"Moderate";
     }
 
-    // Update UI (price + badge)
-    priceText.textContent = `$${current.toFixed(4)}`;
-    updateBadge(signal);
+    /* ===== UPDATE UI ABOVE CHART ===== */
+    infoAsset.textContent = `${asset} — ${tf}`;
+    infoPrice.textContent = `$${cur.toFixed(4)}`;
+    rsiVal.textContent    = rsiNow?.toFixed(2) || "—";
+    ema9Val.textContent   = ema9.at(-1)?.toFixed(4) || "—";
+    ema21Val.textContent  = ema21.at(-1)?.toFixed(4) || "—";
+    macdVal.textContent   = macObj.macd.at(-1)?.toFixed(4) || "—";
+    slVal.textContent     = SL.toFixed(4);
+    tpVal.textContent     = TP.toFixed(4);
 
-    out.innerHTML = `
-      <p><b>Asset:</b> ${asset}  <b>TF:</b> ${tf}</p>
-      <p>EMA9: ${ (ema9.at(-1) || 0).toFixed(4) } | EMA21: ${ (ema21.at(-1) || 0).toFixed(4) } | RSI: ${(rsiArr.at(-1)||0).toFixed(2)}</p>
-      <p><b>SL:</b> ${SL} &nbsp; | &nbsp; <b>TP:</b> ${TP} &nbsp; | &nbsp; ATR: ${atr.toFixed(6)}</p>
-      <p>Signal strength: ${strength}</p>
-    `;
+    /* badge */
+    signalBadge.className = "signal-badge";
+    if(sig==="BUY") signalBadge.classList.add("buy");
+    else if(sig==="SELL") signalBadge.classList.add("sell");
+    else signalBadge.classList.add("hold");
+    signalBadge.textContent = sig;
 
-    // Render
-    // lightweight-charts uses integer unix timestamps for the 'time' key when working with second resolution
-    const formatted = ohlc.map(c => ({ time: c.time, open:c.open, high:c.high, low:c.low, close:c.close }));
-    renderChart(formatted, ma5, ma20, rsiArr, arrows);
+    /* CHART RENDER */
+    if(!chart) initCharts();
 
-  } catch (err) {
-    out.innerHTML = `<p style="color:tomato;">❌ ${err.message}</p>`;
-    console.error(err);
+    candlesSeries.setData(ohlc);
+
+    const ma5Data  = ohlc.map((c,i)=>({time:c.time,value:ma5[i]})).filter(v=>v.value);
+    const ma20Data = ohlc.map((c,i)=>({time:c.time,value:ma20[i]})).filter(v=>v.value);
+    ma5Series.setData(ma5Data);
+    ma20Series.setData(ma20Data);
+
+    const markers = arrows.map(a=>{
+      const c=ohlc[a.i];
+      if(!c) return null;
+      const buy = a.type==="BUY";
+      return{
+        time:c.time,
+        position:buy?"belowBar":"aboveBar",
+        color:buy?"#22c55e":"#ef4444",
+        shape:buy?"arrowUp":"arrowDown",
+        text:a.type
+      };
+    }).filter(Boolean);
+    candlesSeries.setMarkers(markers);
+
+    const rsiData = ohlc.map((c,i)=>({time:c.time,value:rsiArr[i]})).filter(v=>v.value);
+    rsiSeries.setData(rsiData);
+
+  }catch(e){
+    console.error(e);
   }
 }
 
-/* update badge look */
-function updateBadge(sig) {
-  signalBadge.className = "signal";
-  if (sig === "BUY") { signalBadge.classList.add("buy"); signalBadge.textContent = "BUY"; }
-  else if (sig === "SELL") { signalBadge.classList.add("sell"); signalBadge.textContent = "SELL"; }
-  else { signalBadge.classList.add("hold"); signalBadge.textContent = "HOLD"; }
-}
-
-/* ---------- Auto refresh ---------- */
-function toggleAutoRefresh(){
-  clearInterval(autoRefreshInterval);
-  if (autoEnabled) {
+/* ======== TOOLBAR EVENTS ======== */
+document.querySelectorAll(".tf-btn").forEach(btn=>{
+  btn.onclick=()=>{
+    document.querySelectorAll(".tf-btn").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    currentTF = btn.dataset.tf;
     generateSignal();
-    autoRefreshInterval = setInterval(generateSignal, 5000);
   }
-}
+});
 
-/* ---------- start up ---------- */
-(function boot(){
-  // pre-populate assets and run initial draw
-  updateAssetOptions();
+document.getElementById("btnCross").onclick=()=>{
+  crosshairOn=!crosshairOn;
+  chart.applyOptions({crosshair:{mode:crosshairOn?0:-1}});
+  document.getElementById("btnCross").textContent = crosshairOn?"Crosshair":"Cross Off";
+};
 
-  // prefer BTC by default if present
-  assetSel.value = assetSel.querySelector("option") ? assetSel.querySelector("option").value : "";
+document.getElementById("btnIndicators").onclick=()=>{
+  indicatorsOn=!indicatorsOn;
+  ma5Series.applyOptions({visible:indicatorsOn});
+  ma20Series.applyOptions({visible:indicatorsOn});
+  rsiSeries.applyOptions({visible:indicatorsOn});
+  document.getElementById("btnIndicators").textContent = indicatorsOn?"Indicators":"Ind Off";
+};
+
+document.getElementById("btnRefresh").onclick=()=>generateSignal();
+
+document.getElementById("autoRefresh").onchange=e=>{
+  clearInterval(autoTimer);
+  if(e.target.checked){
+    autoTimer=setInterval(generateSignal,5000);
+    generateSignal();
+  }
+};
+
+/* ======== LOGO SPIN TOGGLE ======== */
+document.getElementById("logoWrap").onclick=()=>{
+  logoCircle.classList.toggle("paused");
+};
+
+/* ======== STARTUP ======== */
+(function startup(){
+  fillAssets();
+  assetSel.onchange=generateSignal;
+  marketSel.onchange=()=>{
+    fillAssets();
+    generateSignal();
+  };
 
   initCharts();
   generateSignal();
 
-  // small UX: when asset changes, refresh
-  assetSel.addEventListener("change", ()=>generateSignal());
-  marketSel.addEventListener("change", ()=>generateSignal());
-
-  // attempt to expand the Telegram WebApp if available
-  try {
-    if (window.Telegram && Telegram.WebApp && Telegram.WebApp.expand) {
-      Telegram.WebApp.expand();
-    }
-  } catch (e) { /* ignore */ }
+  try{
+    if(window.Telegram && Telegram.WebApp) Telegram.WebApp.expand();
+  }catch(e){}
 })();
