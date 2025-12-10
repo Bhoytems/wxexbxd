@@ -7,10 +7,19 @@ const TWELVE_KEY = "2fb822c09c1c42e19c07e94090f18b42";   // ← Insert your Twel
    TIMEFRAME CONVERSION (Critical Fix)
 ============================================================ */
 function mapTimeframe(tf, isForex) {
-  if (!isForex) {
-    // Binance uses identical chart TFs — all UI timeframes are supported.
-    return tf;
-  }
+  if (!isForex) return tf; // Binance uses same format
+  
+  const mapping = {
+    "1m": "1min",
+    "3m": "5min",  // closest available
+    "5m": "5min",
+    "15m": "15min",
+    "1h": "1h",
+    "1d": "1day"
+  };
+
+  return mapping[tf] || "1min";
+}  let interval = mapTimeframe(tf, market === "forex");
 
   // TwelveData mapping
   const mapping = {
@@ -362,7 +371,7 @@ document.getElementById("autoRefresh").addEventListener("change", ()=>{
   if (autoInterval) clearInterval(autoInterval);
   if (document.getElementById("autoRefresh").checked){
     generateSignal();
-    autoInterval = setInterval(generateSignal, 5000);
+    autoInterval = setInterval(generateSignal, 1000);
   }
 });
 
