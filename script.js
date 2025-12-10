@@ -1,397 +1,354 @@
-// Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyDLxVyd6Wzp8gJ-BMZWCQyJlDJhk0a1UyA",
-  authDomain: "dube-f0210.firebaseapp.com",
-  projectId: "dube-f0210",
-  storageBucket: "dube-f0210.firebasestorage.app",
-  messagingSenderId: "369666225818",
-  appId: "1:369666225818:web:bc99423f4c8c163f99d123",
-  measurementId: "G-RNP41FMVND"
+// ===========================
+// Pro v4.2 App JS
+// ===========================
+
+/* ---------- Global state / chart refs ---------- */
+let chart = null;
+let candlesSeries = null;
+let ma5Series = null;
+let ma20Series = null;
+let rsiChart = null;
+let rsiSeries = null;
+let currentTF = "1m";
+let autoRefreshInterval = null;
+let autoEnabled = false;
+let useCrosshair = true;
+let indicatorsVisible = true;
+
+/* ---------- Element refs ---------- */
+const assetSel = document.getElementById("asset");
+const marketSel = document.getElementById("market");
+const priceText = document.getElementById("priceText");
+const signalBadge = document.getElementById("signalBadge");
+const infoRows = document.getElementById("infoRows");
+const tvContainer = document.getElementById("tvChart");
+const rsiContainer = document.getElementById("rsiChart");
+const logoCircle = document.getElementById("logoCircle");
+const logoWrap = document.getElementById("logoWrap");
+
+/* ---------- Assets (same as original) ---------- */
+const cryptoAssets = {
+  BTCUSDT: "Bitcoin (BTC/USDT)",
+  ETHUSDT: "Ethereum (ETH/USDT)",
+  SOLUSDT: "Solana (SOL/USDT)",
+  DOGEUSDT: "Dogecoin (DOGE/USDT)",
+  ADAUSDT: "Cardano (ADA/USDT)"
+};
+const forexAssets = {
+  "EURUSD": "EUR/USD",
+  "GBPUSD": "GBP/USD",
+  "USDJPY": "USD/JPY",
+  "AUDUSD": "AUD/USD",
+  "USDCAD": "USD/CAD"
 };
 
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-const auth = firebase.auth();
+/* ---------- UI init ---------- */
+function updateAssetOptions(){
+  const isCrypto = marketSel.value === "crypto";
+  const group = isCrypto ? cryptoAssets : forexAssets;
+  assetSel.innerHTML = "";
+  Object.entries(group).forEach(([v,t])=>{
+    const opt = document.createElement("option");
+    opt.value = v;
+    opt.textContent = t;
+    assetSel.appendChild(opt);
+  });
+}
+updateAssetOptions();
+marketSel.addEventListener("change", ()=>{ updateAssetOptions(); });
 
-// User data structure
-let userData = {
-    uid: null,
-    twitterUsername: null,
-    twitterProfilePic: null,
-    balance: 0,
-    lastDailyClaim: 0,
-    completedTasks: {
-        telegram: false,
-        twitter: false,
-        retweet: false
-    },
-    referralCode: generateReferralCode(),
-    referredUsers: 0
-};
+/* ---------- trading toolbar handlers ---------- */
+document.querySelectorAll(".tf-btn").forEach(b=>{
+  b.addEventListener("click", (ev)=>{
+    document.querySelectorAll(".tf-btn").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    currentTF = b.dataset.tf;
+    // Normalize to Binance interval map used in internal TF mapping
+    generateSignal();
+  });
+});
 
-// DOM Elements
-const twitterLoginBtn = document.getElementById('twitterLogin');
-const userInfoEl = document.getElementById('userInfo');
-const userBalanceEl = document.getElementById('userBalance');
-const dailyBonusBtn = document.getElementById('dailyBonus');
-const dailyTimerEl = document.getElementById('dailyTimer');
-const telegramVerifyBtn = document.getElementById('telegramVerify');
-const twitterVerifyBtn = document.getElementById('twitterVerify');
-const retweetVerifyBtn = document.getElementById('retweetVerify');
-const referralCodeInput = document.getElementById('referralCode');
-const applyReferralBtn = document.getElementById('applyReferral');
-const userReferralLinkEl = document.getElementById('userReferralLink');
-const copyReferralBtn = document.getElementById('copyReferral');
-const referralCountEl = document.getElementById('referralCount');
+document.getElementById("btnCross").addEventListener("click", ()=>{
+  useCrosshair = !useCrosshair;
+  document.getElementById("btnCross").textContent = useCrosshair ? "Crosshair" : "Cross off";
+  // lightweight-charts crosshair toggling is limited: we emulate by applyOptions
+  if (chart) chart.applyOptions({ localization: {}, crosshair: { mode: useCrosshair ? 0 : -1 }});
+});
 
-// Create profile icon container for top right
-const profileIconContainer = document.createElement('div');
-profileIconContainer.className = 'profile-icon-container';
-document.body.appendChild(profileIconContainer);
+document.getElementById("btnIndicators").addEventListener("click", ()=>{
+  indicatorsVisible = !indicatorsVisible;
+  document.getElementById("btnIndicators").textContent = indicatorsVisible ? "Indicators" : "Ind off";
+  if (ma5Series) ma5Series.applyOptions({ visible: indicatorsVisible });
+  if (ma20Series) ma20Series.applyOptions({ visible: indicatorsVisible });
+  if (rsiChart) rsiChart.applyOptions({ visible: indicatorsVisible });
+});
 
-// Initialize the app
-async function init() {
-    updateUI();
-    checkDailyBonusAvailability();
-    
-    // Set up auth state listener
-    auth.onAuthStateChanged(async (user) => {
-        if (user) {
-            // User is signed in
-            const token = await user.getIdTokenResult();
-            userData.uid = user.uid;
-            userData.twitterUsername = token.claims.screen_name;
-            userData.twitterProfilePic = user.photoURL;
-            
-            // Display user info in profile icon (top right)
-            profileIconContainer.innerHTML = `
-                <img src="${userData.twitterProfilePic}" alt="Profile" class="profile-icon">
-                <div class="profile-dropdown">
-                    <span>@${userData.twitterUsername}</span>
-                    <button id="logoutBtn">Logout</button>
-                </div>
-            `;
-            
-            // Add logout button event listener
-            document.getElementById('logoutBtn').addEventListener('click', async () => {
-                await auth.signOut();
-            });
-            
-            // Update login button (center)
-            twitterLoginBtn.style.display = 'none';
-            
-            // Load user data
-            await loadUserData();
-            
-            // Update referral link
-            userReferralLinkEl.value = `${window.location.origin}${window.location.pathname}?ref=${userData.referralCode}`;
-            referralCountEl.textContent = `You've referred ${userData.referredUsers} friends`;
-            
-            // Check for referral code in URL
-            const urlParams = new URLSearchParams(window.location.search);
-            const refCode = urlParams.get('ref');
-            if (refCode && refCode !== userData.referralCode) {
-                applyReferral(refCode);
-            }
-        } else {
-            // User is signed out
-            userData.uid = null;
-            userData.twitterUsername = null;
-            userData.twitterProfilePic = null;
-            
-            // Clear profile icon
-            profileIconContainer.innerHTML = '';
-            
-            // Show login button (center)
-            twitterLoginBtn.style.display = 'block';
-            twitterLoginBtn.innerHTML = '<i class="fab fa-twitter"></i> Login with Twitter';
-        }
-        updateUI();
-    });
+document.getElementById("btnRefresh").addEventListener("click", ()=>generateSignal());
+document.getElementById("autoRefresh").addEventListener("change",(e)=>{
+  autoEnabled = e.target.checked;
+  toggleAutoRefresh();
+});
+
+/* logo spin toggle */
+logoWrap.addEventListener("click", ()=>{
+  logoCircle.classList.toggle("paused");
+});
+
+/* ---------- Indicator helpers (from original) ---------- */
+function SMA(arr, p) {
+  if (!arr || arr.length < p) return null;
+  return arr.slice(-p).reduce((a,b)=>a+b,0)/p;
+}
+function EMA(prices, period) {
+  if (!prices || prices.length === 0) return [];
+  const k = 2/(period+1);
+  let ema = [prices[0]];
+  for (let i=1;i<prices.length;i++) ema.push(prices[i]*k + ema[i-1]*(1-k));
+  return ema;
+}
+function RSI(prices, period=14) {
+  if (!prices || prices.length < 2) return 50;
+  let gains=[], losses=[];
+  for (let i=1;i<prices.length;i++){
+    let d = prices[i]-prices[i-1];
+    gains.push(d>0?d:0);
+    losses.push(d<0?Math.abs(d):0);
+  }
+  if (gains.length < period) return 50;
+  let avgG = SMA(gains, period), avgL = SMA(losses, period);
+  if (avgL === 0) return 100;
+  let RS = avgG/avgL;
+  return 100 - (100/(1+RS));
+}
+function ATR(ohlc, period=14){
+  if (!ohlc || ohlc.length < period+1) return 0;
+  let trs=[];
+  for(let i=1;i<ohlc.length;i++){
+    let h=ohlc[i].high, l=ohlc[i].low, pc=ohlc[i-1].close;
+    trs.push(Math.max(h-l, Math.abs(h-pc), Math.abs(l-pc)));
+  }
+  return SMA(trs, period) || 0;
+}
+function MACD(prices, fast=12, slow=26, signal=9) {
+  const emaFast = EMA(prices, fast);
+  const emaSlow = EMA(prices, slow);
+  const length = Math.min(emaFast.length, emaSlow.length);
+  let macd = [];
+  for (let i=0;i<length;i++) macd.push(emaFast[i] - emaSlow[i]);
+  const sigLine = EMA(macd, signal);
+  return { macd, signal: sigLine };
+}
+function detectMACDCross(macd, sig) {
+  let arrows = [];
+  for (let i=1;i<macd.length && i<sig.length;i++) {
+    if (macd[i-1] < sig[i-1] && macd[i] > sig[i]) arrows.push({ index: i, type: "BUY" });
+    if (macd[i-1] > sig[i-1] && macd[i] < sig[i]) arrows.push({ index: i, type: "SELL" });
+  }
+  return arrows;
 }
 
-// Twitter login button handler (centered button)
-twitterLoginBtn.addEventListener('click', async () => {
-    if (auth.currentUser) {
-        // User is logged in, so log them out
-        await auth.signOut();
+/* ---------- Chart init / resize ---------- */
+function initCharts() {
+  // dispose existing charts by clearing containers (lightweight-charts singleton isn't heavy)
+  tvContainer.innerHTML = "";
+  rsiContainer.innerHTML = "";
+
+  chart = LightweightCharts.createChart(tvContainer, {
+    layout:{ background:{color:"#0d1117"}, textColor:"#cbd5e1" },
+    grid:{ vertLines:{color:"#0b0b0b"}, horzLines:{color:"#0b0b0b"} },
+    width: tvContainer.clientWidth,
+    height: Math.max(260, Math.round(window.innerHeight * 0.45))
+  });
+
+  candlesSeries = chart.addCandlestickSeries({
+    upColor:"#22c55e", downColor:"#ef4444",
+    borderUpColor:"#22c55e", borderDownColor:"#ef4444"
+  });
+
+  ma5Series = chart.addLineSeries({ color:"#3b82f6", lineWidth:2, visible: indicatorsVisible });
+  ma20Series = chart.addLineSeries({ color:"#a855f7", lineWidth:2, visible: indicatorsVisible });
+
+  rsiChart = LightweightCharts.createChart(rsiContainer, {
+    layout:{ background:{color:"#0d1117"}, textColor:"#cbd5e1" },
+    width: rsiContainer.clientWidth,
+    height: Math.max(90, Math.round(window.innerHeight * 0.18))
+  });
+  rsiSeries = rsiChart.addLineSeries({ color:"#facc15", lineWidth:2, visible: indicatorsVisible });
+
+  // crosshair
+  chart.applyOptions({ crosshair: { mode: useCrosshair ? 0 : -1 }});
+}
+
+/* adapt charts to new sizes on orientation/window change */
+window.addEventListener("resize", ()=>{
+  if (chart) {
+    chart.resize(tvContainer.clientWidth, Math.max(260, Math.round(window.innerHeight * 0.45)));
+  }
+  if (rsiChart) {
+    rsiChart.resize(rsiContainer.clientWidth, Math.max(90, Math.round(window.innerHeight * 0.18)));
+  }
+});
+
+/* ---------- Render chart function (similar to original) ---------- */
+function renderChart(ohlc, ma5, ma20, rsiArr, macdArrows) {
+  // init or re-init charts
+  if (!chart) initCharts();
+
+  candlesSeries.setData(ohlc);
+
+  // map ma arrays into series values aligned with ohlc times
+  const ma5Data = ohlc.map((c,i)=>({ time:c.time, value: (ma5[i] !== undefined ? ma5[i] : null) })).filter(d=>d.value!==null);
+  const ma20Data = ohlc.map((c,i)=>({ time:c.time, value: (ma20[i] !== undefined ? ma20[i] : null) })).filter(d=>d.value!==null);
+
+  ma5Series.setData(ma5Data);
+  ma20Series.setData(ma20Data);
+
+  // markers
+  const markers = macdArrows.map(a => {
+    const candle = ohlc[a.index];
+    if (!candle) return null;
+    const isBuy = a.type === "BUY";
+    return {
+      time: candle.time,
+      position: isBuy ? 'belowBar' : 'aboveBar',
+      color: isBuy ? '#22c55e' : '#ef4444',
+      shape: isBuy ? 'arrowUp' : 'arrowDown',
+      text: a.type
+    };
+  }).filter(Boolean);
+  candlesSeries.setMarkers(markers);
+
+  // RSI
+  const rsiData = ohlc.map((c,i)=>({ time: c.time, value: (rsiArr[i] !== undefined ? rsiArr[i] : null) })).filter(d=>d.value!==null);
+  rsiSeries.setData(rsiData);
+}
+
+/* ---------- TF mapping util (map toolbar TF to Binance interval) ---------- */
+function mapTFtoInterval(tf){
+  // minimal mapping comfortable for Binance endpoints (user can extend)
+  const map = {
+    "1m": "1m",
+    "3m": "3m",
+    "5m": "5m",
+    "15m":"15m",
+    "1h":"1h",
+    "1d":"1d"
+  };
+  return map[tf] || "1m";
+}
+
+/* ---------- MAIN SIGNAL FUNCTION (fetching + logic) ---------- */
+async function generateSignal(){
+  const market = marketSel.value;
+  const asset = assetSel.value;
+  const tf = currentTF;
+  const out = infoRows;
+
+  out.innerHTML = `<p>⏳ Fetching ${asset} ${tf} ...</p>`;
+
+  try {
+    const interval = mapTFtoInterval(tf);
+    // handle forex assets by providing a synthetic data route or returning error.
+    // For Telegram webapp usage we assume crypto symbols (Binance) are common; for forex you may supply your own OHLC source.
+    let url;
+    if (market === "crypto") {
+      url = `https://api.binance.com/api/v3/klines?symbol=${asset}&interval=${interval}&limit=240`;
     } else {
-        // Sign in with Twitter
-        const provider = new firebase.auth.TwitterAuthProvider();
-        try {
-            await auth.signInWithPopup(provider);
-        } catch (error) {
-            console.error("Twitter login error:", error);
-            alert('Error logging in with Twitter. Please try again.');
-        }
+      // For forex a simple fallback: use Binance symbol if pair matches or return error.
+      // We'll try symbol without slash (e.g., EURUSD). Binance often doesn't serve FX; user should replace with a provider.
+      url = `https://api.binance.com/api/v3/klines?symbol=${asset}&interval=${interval}&limit=240`;
     }
-});
 
-// Display user info
-            userInfoEl.innerHTML = `
-                <img src="${userData.twitterProfilePic}" alt="Profile" class="profile-pic">
-                <span>@${userData.twitterUsername}</span>
-            `;
-            twitterLoginBtn.textContent = 'Logout';
-            
-            // Load user data
-            await loadUserData();
-            
-            // Update referral link
-            userReferralLinkEl.value = `${window.location.origin}${window.location.pathname}?ref=${userData.referralCode}`;
-            referralCountEl.textContent = `You've referred ${userData.referredUsers} friends`;
-            
-            // Check for referral code in URL
-            const urlParams = new URLSearchParams(window.location.search);
-            const refCode = urlParams.get('ref');
-            if (refCode && refCode !== userData.referralCode) {
-                applyReferral(refCode);
-            }
-        } else {
-            // User is signed out
-            userData.uid = null;
-            userData.twitterUsername = null;
-            userData.twitterProfilePic = null;
-            userInfoEl.textContent = '';
-            twitterLoginBtn.innerHTML = '<i class="fab fa-twitter"></i> Login with Twitter';
-        }
-        updateUI();
-    });
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Data fetch failed: ${res.status} ${res.statusText}`);
+    const data = await res.json();
+
+    const ohlc = data.map(p => ({ time: p[0]/1000, open: +p[1], high:+p[2], low:+p[3], close:+p[4] }));
+    const prices = ohlc.map(v=>v.close);
+
+    // indicators (same logic)
+    const ma5 = prices.map((_,i)=> (i+1)>=5 ? SMA(prices.slice(0,i+1),5) : null );
+    const ma20 = prices.map((_,i)=> (i+1)>=20 ? SMA(prices.slice(0,i+1),20) : null );
+    const ema9 = EMA(prices, 9);
+    const ema21 = EMA(prices, 21);
+    const rsiArr = prices.map((_,i)=> (i+1)>=14 ? RSI(prices.slice(0,i+1),14) : null );
+
+    const macdObj = MACD(prices);
+    const arrows = detectMACDCross(macdObj.macd, macdObj.signal);
+
+    const current = prices.at(-1);
+    const atr = ATR(ohlc, 14);
+    const SL = (current - atr*1.5).toFixed(6);
+    const TP = (current + atr*2).toFixed(6);
+
+    // signal decision (same as original)
+    let signal = "HOLD", strength = "Weak";
+    if (ema9.at(-1) !== undefined && ema21.at(-1) !== undefined && rsiArr.at(-1) !== null) {
+      if (ema9.at(-1) > ema21.at(-1) && rsiArr.at(-1) > 55) {
+        signal="BUY"; strength = rsiArr.at(-1)>65 ? "Strong" : "Moderate";
+      } else if (ema9.at(-1) < ema21.at(-1) && rsiArr.at(-1) < 45) {
+        signal="SELL"; strength = rsiArr.at(-1)<35 ? "Strong" : "Moderate";
+      }
+    }
+
+    // Update UI (price + badge)
+    priceText.textContent = `$${current.toFixed(4)}`;
+    updateBadge(signal);
+
+    out.innerHTML = `
+      <p><b>Asset:</b> ${asset}  <b>TF:</b> ${tf}</p>
+      <p>EMA9: ${ (ema9.at(-1) || 0).toFixed(4) } | EMA21: ${ (ema21.at(-1) || 0).toFixed(4) } | RSI: ${(rsiArr.at(-1)||0).toFixed(2)}</p>
+      <p><b>SL:</b> ${SL} &nbsp; | &nbsp; <b>TP:</b> ${TP} &nbsp; | &nbsp; ATR: ${atr.toFixed(6)}</p>
+      <p>Signal strength: ${strength}</p>
+    `;
+
+    // Render
+    // lightweight-charts uses integer unix timestamps for the 'time' key when working with second resolution
+    const formatted = ohlc.map(c => ({ time: c.time, open:c.open, high:c.high, low:c.low, close:c.close }));
+    renderChart(formatted, ma5, ma20, rsiArr, arrows);
+
+  } catch (err) {
+    out.innerHTML = `<p style="color:tomato;">❌ ${err.message}</p>`;
+    console.error(err);
+  }
 }
 
-// Twitter login button handler
-twitterLoginBtn.addEventListener('click', async () => {
-    if (auth.currentUser) {
-        // User is logged in, so log them out
-        await auth.signOut();
-    } else {
-        // Sign in with Twitter
-        const provider = new firebase.auth.TwitterAuthProvider();
-        try {
-            await auth.signInWithPopup(provider);
-        } catch (error) {
-            console.error("Twitter login error:", error);
-            alert('Error logging in with Twitter. Please try again.');
-        }
-    }
-});
-
-// Load user data from Firebase
-async function loadUserData() {
-    if (!userData.uid) return;
-    
-    try {
-        const userDoc = await db.collection('users').doc(userData.uid).get();
-        if (userDoc.exists) {
-            const data = userDoc.data();
-            userData.balance = data.balance || 0;
-            userData.lastDailyClaim = data.lastDailyClaim ? data.lastDailyClaim.toDate() : 0;
-            userData.completedTasks = data.completedTasks || {
-                telegram: false,
-                twitter: false,
-                retweet: false
-            };
-            userData.referralCode = data.referralCode || generateReferralCode();
-            userData.referredUsers = data.referredUsers || 0;
-            
-            // Update referral link with loaded code
-            userReferralLinkEl.value = `${window.location.origin}${window.location.pathname}?ref=${userData.referralCode}`;
-            referralCountEl.textContent = `You've referred ${userData.referredUsers} friends`;
-        } else {
-            // New user - save initial data
-            await saveUserData();
-        }
-    } catch (error) {
-        console.error("Error loading user data:", error);
-    }
+/* update badge look */
+function updateBadge(sig) {
+  signalBadge.className = "signal";
+  if (sig === "BUY") { signalBadge.classList.add("buy"); signalBadge.textContent = "BUY"; }
+  else if (sig === "SELL") { signalBadge.classList.add("sell"); signalBadge.textContent = "SELL"; }
+  else { signalBadge.classList.add("hold"); signalBadge.textContent = "HOLD"; }
 }
 
-// Save user data to Firebase
-async function saveUserData() {
-    if (!userData.uid) return;
-    
-    try {
-        await db.collection('users').doc(userData.uid).set({
-            uid: userData.uid,
-            twitterUsername: userData.twitterUsername,
-            twitterProfilePic: userData.twitterProfilePic,
-            balance: userData.balance,
-            lastDailyClaim: userData.lastDailyClaim ? firebase.firestore.Timestamp.fromDate(new Date(userData.lastDailyClaim)) : null,
-            completedTasks: userData.completedTasks,
-            referralCode: userData.referralCode,
-            referredUsers: userData.referredUsers,
-            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-        });
-    } catch (error) {
-        console.error("Error saving user data:", error);
-    }
+/* ---------- Auto refresh ---------- */
+function toggleAutoRefresh(){
+  clearInterval(autoRefreshInterval);
+  if (autoEnabled) {
+    generateSignal();
+    autoRefreshInterval = setInterval(generateSignal, 5000);
+  }
 }
 
-// Daily bonus button handler
-dailyBonusBtn.addEventListener('click', async () => {
-    if (canClaimDailyBonus()) {
-        userData.balance += 100; // Updated to 100 DUBE
-        userData.lastDailyClaim = new Date();
-        await saveUserData();
-        updateUI();
-        checkDailyBonusAvailability();
-        alert('You claimed 100 $DUBE daily bonus!');
-    }
-});
+/* ---------- start up ---------- */
+(function boot(){
+  // pre-populate assets and run initial draw
+  updateAssetOptions();
 
-// Task verification buttons
-telegramVerifyBtn.addEventListener('click', async () => {
-    if (!userData.completedTasks.telegram) {
-        userData.balance += 150; // Updated to 150 DUBE
-        userData.completedTasks.telegram = true;
-        await saveUserData();
-        updateUI();
-        alert('Telegram task verified! 150 $DUBE added to your balance.');
-    }
-});
+  // prefer BTC by default if present
+  assetSel.value = assetSel.querySelector("option") ? assetSel.querySelector("option").value : "";
 
-twitterVerifyBtn.addEventListener('click', async () => {
-    if (!userData.completedTasks.twitter) {
-        userData.balance += 200; // Updated to 200 DUBE
-        userData.completedTasks.twitter = true;
-        await saveUserData();
-        updateUI();
-        alert('Twitter task verified! 200 $DUBE added to your balance.');
-    }
-});
+  initCharts();
+  generateSignal();
 
-retweetVerifyBtn.addEventListener('click', async () => {
-    if (!userData.completedTasks.retweet) {
-        userData.balance += 150; // Updated to 150 DUBE
-        userData.completedTasks.retweet = true;
-        await saveUserData();
-        updateUI();
-        alert('Retweet task verified! 150 $DUBE added to your balance.');
-    }
-});
+  // small UX: when asset changes, refresh
+  assetSel.addEventListener("change", ()=>generateSignal());
+  marketSel.addEventListener("change", ()=>generateSignal());
 
-// Referral system
-applyReferralBtn.addEventListener('click', async () => {
-    const code = referralCodeInput.value.trim();
-    if (code) {
-        await applyReferral(code);
+  // attempt to expand the Telegram WebApp if available
+  try {
+    if (window.Telegram && Telegram.WebApp && Telegram.WebApp.expand) {
+      Telegram.WebApp.expand();
     }
-});
-
-copyReferralBtn.addEventListener('click', () => {
-    userReferralLinkEl.select();
-    document.execCommand('copy');
-    alert('Referral link copied to clipboard!');
-});
-
-// Update UI based on user data
-function updateUI() {
-    userBalanceEl.textContent = `${userData.balance} DUBE`;
-    
-    // Update task buttons
-    telegramVerifyBtn.disabled = userData.completedTasks.telegram || !userData.uid;
-    twitterVerifyBtn.disabled = userData.completedTasks.twitter || !userData.uid;
-    retweetVerifyBtn.disabled = userData.completedTasks.retweet || !userData.uid;
-    dailyBonusBtn.disabled = !canClaimDailyBonus() || !userData.uid;
-    
-    if (userData.completedTasks.telegram) {
-        telegramVerifyBtn.textContent = 'Completed';
-    } else {
-        telegramVerifyBtn.textContent = 'Verify Telegram';
-    }
-    
-    if (userData.completedTasks.twitter) {
-        twitterVerifyBtn.textContent = 'Completed';
-    } else {
-        twitterVerifyBtn.textContent = 'Verify Twitter';
-    }
-    
-    if (userData.completedTasks.retweet) {
-        retweetVerifyBtn.textContent = 'Completed';
-    } else {
-        retweetVerifyBtn.textContent = 'Verify Retweet';
-    }
-}
-
-// Check if daily bonus can be claimed
-function canClaimDailyBonus() {
-    if (!userData.lastDailyClaim) return true;
-    
-    const now = new Date();
-    const lastClaim = new Date(userData.lastDailyClaim);
-    const hoursSinceLastClaim = (now - lastClaim) / (1000 * 60 * 60);
-    
-    return hoursSinceLastClaim >= 24;
-}
-
-// Update daily bonus timer display
-function checkDailyBonusAvailability() {
-    if (!userData.lastDailyClaim) {
-        dailyTimerEl.textContent = 'Available now';
-        dailyBonusBtn.disabled = !userData.uid;
-        return;
-    }
-    
-    const now = new Date();
-    const lastClaim = new Date(userData.lastDailyClaim);
-    const nextClaimTime = new Date(lastClaim.getTime() + 24 * 60 * 60 * 1000);
-    
-    if (now >= nextClaimTime) {
-        dailyTimerEl.textContent = 'Available now';
-        dailyBonusBtn.disabled = !userData.uid;
-    } else {
-        const hoursLeft = Math.floor((nextClaimTime - now) / (1000 * 60 * 60));
-        const minutesLeft = Math.floor(((nextClaimTime - now) % (1000 * 60 * 60)) / (1000 * 60));
-        dailyTimerEl.textContent = `Available in ${hoursLeft}h ${minutesLeft}m`;
-        dailyBonusBtn.disabled = true;
-    }
-}
-
-// Apply referral code
-async function applyReferral(code) {
-    if (userData.uid && code && code !== userData.referralCode) {
-        try {
-            // Check if referral code exists in database
-            const refQuery = await db.collection('users').where('referralCode', '==', code).limit(1).get();
-            
-            if (!refQuery.empty) {
-                // Valid referral code found
-                userData.balance += 300; // Updated to 300 DUBE
-                userData.referredUsers += 1;
-                
-                // Update referrer's count
-                const referrerDoc = refQuery.docs[0];
-                await db.collection('users').doc(referrerDoc.id).update({
-                    referredUsers: firebase.firestore.FieldValue.increment(1)
-                });
-                
-                await saveUserData();
-                updateUI();
-                referralCountEl.textContent = `You've referred ${userData.referredUsers} friends`;
-                alert('Referral applied! 300 $DUBE added to your balance.');
-            } else {
-                alert('Invalid referral code.');
-            }
-        } catch (error) {
-            console.error("Error applying referral:", error);
-            alert('An error occurred while applying the referral.');
-        }
-    }
-} ...
-
-// Helper function to generate referral code
-function generateReferralCode() {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let code = '';
-    for (let i = 0; i < 8; i++) {
-        code += chars[Math.floor(Math.random() * chars.length)];
-    }
-    return code;
-}
-
-// Initialize the app
-init();
-
-// Check daily bonus every minute
-setInterval(checkDailyBonusAvailability, 60000);
+  } catch (e) { /* ignore */ }
+})();
