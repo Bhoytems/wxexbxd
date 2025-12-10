@@ -45,7 +45,6 @@ logo.addEventListener("click", () => {
   logo.style.animationPlayState =
     logo.style.animationPlayState === "paused" ? "running" : "paused";
 });
-
 /* ============================================================
    ANALYZE BUTTON COLOR TOGGLE
 ============================================================ */
@@ -60,6 +59,30 @@ let colorIndex = 0;
 document.getElementById("btnRefresh").addEventListener("click", () => {
   colorIndex = (colorIndex + 1) % analyzeColors.length;
   document.getElementById("btnRefresh").style.background = analyzeColors[colorIndex];
+
+  generateSignal(); // ← FIX ADDED
+});
+/* ============================================================
+   ANALYZE BUTTON COLOR TOGGLE
+============================================================ */
+let analyzeColors = [
+  "linear-gradient(90deg,#009dff,#007dff)",
+  "linear-gradient(90deg,#22c55e,#16a34a)",
+  "linear-gradient(90deg,#a855f7,#7e22ce)",
+  "linear-gradient(90deg,#ef4444,#dc2626)"
+];
+let colorIndex = 0;
+
+document.getElementById("btnRefresh").addEventListener("click", () => {
+  colorIndex = (colorIndex + 1) % analyzeColors.length;
+  document.getElementById("btnRefresh").style.background = analyzeColors[colorIndex];
+});
+
+/* ============================================================
+   FIX ANALYZE BUTTON
+============================================================ */
+document.getElementById("btnRefresh").addEventListener("click", () => {
+  generateSignal();   // ← Runs analyzer
 });
 
 /* ============================================================
