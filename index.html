@@ -1,84 +1,87 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <!-- Add these in the <head> section -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DUBE Crypto Airdrop</title>
-  <link rel="stylesheet" href="style.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <meta name="theme-color" content="#0d1117" />
+  <title>Pro v4.2 – Signal Analyzer (Telegram WebApp)</title>
+
+  <!-- external libs -->
+  <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
+
+  <!-- styles -->
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>DUBE</h1>
-            <p>Claim your free $DUBE tokens and earn more through tasks!</p>
-        </header>
-
-        <div class="wallet-connect">
-            <button id="twitterLogin"><i class="fab fa-twitter"></i> Login with Twitter</button>
-            <p id="userInfo"></p>
-        </div>
-
-        <div class="balance-box">
-            <h3>Your $DUBE Balance</h3>
-            <p id="userBalance">0 DUBE</p>
-        </div>
-
-        <div class="tasks">
-            <div class="task-card">
-                <h3>Daily Bonus</h3>
-                <p>Claim 100 $DUBE every 24 hours</p>
-                <button id="dailyBonus" class="task-button">Claim Bonus</button>
-                <p id="dailyTimer">Available now</p>
-            </div>
-
-            <div class="task-card">
-                <h3>Telegram Task</h3>
-                <p>Join our Telegram to earn 150 $DUBE</p>
-                <a href="https://t.me/dubesolana" target="_blank" class="task-link">Join Telegram</a>
-                <button id="telegramVerify" class="task-button">Verify</button>
-            </div>
-
-            <div class="task-card">
-                <h3>Twitter Task</h3>
-                <p>Follow us on Twitter to earn 200 $DUBE</p>
-                <a href="https://x.com/dubecoin?s=09" target="_blank" class="task-link">Follow Twitter</a>
-                <button id="twitterVerify" class="task-button">Verify</button>
-            </div>
-
-            <div class="task-card">
-                <h3>Retweet Task</h3>
-                <p>Retweet our pinned post to earn 150 $DUBE</p>
-                <a href="https://x.com/dubecoin/status/1930024259562176959?t=O5k9ua93s60gn-huEnsQ-w&s=19" target="_blank" class="task-link">View Tweet</a>
-                <button id="retweetVerify" class="task-button">Verify</button>
-            </div>
-        </div>
-
-        <div class="referral">
-            <h3>Referral Program</h3>
-            <p>Earn 300 $DUBE for each friend who joins</p>
-            <div class="referral-input">
-                <input type="text" id="referralCode" placeholder="Enter referral code (optional)">
-                <button id="applyReferral">Apply</button>
-            </div>
-            <p>Your referral link:</p>
-            <div class="referral-link">
-                <input type="text" id="userReferralLink" readonly>
-                <button id="copyReferral">Copy</button>
-            </div>
-            <p id="referralCount">You've referred 0 friends</p>
-        </div>
-
-        <footer>
-            <p>© 2025 DUBE Airdrop. All rights reserved.</p>
-        </footer>
+  <!-- Top safe header (useful for Telegram webapp safe area) -->
+  <header class="app-header">
+    <div class="logo-wrap" id="logoWrap" title="Click to toggle spin">
+      <!-- spinning logo circle -->
+      <div id="logoCircle" class="logo-circle">LOGO</div>
     </div>
 
-    <script src="script.js"></script>
+    <div class="app-title">
+      <h1>Pro v4.2</h1>
+      <p class="subtitle">Crypto + Forex Signal Analyzer — Mobile + Telegram WebApp</p>
+    </div>
+  </header>
+
+  <!-- Toolbar: trading view style -->
+  <nav class="toolbar" id="toolbar">
+    <div class="tf-group" id="tfGroup">
+      <!-- timeframe buttons (wired in JS) -->
+      <button class="tf-btn active" data-tf="1m">1m</button>
+      <button class="tf-btn" data-tf="3m">3m</button>
+      <button class="tf-btn" data-tf="5m">5m</button>
+      <button class="tf-btn" data-tf="15m">15m</button>
+      <button class="tf-btn" data-tf="1h">1h</button>
+      <button class="tf-btn" data-tf="1d">1d</button>
+    </div>
+
+    <div class="tools">
+      <button id="btnCross">Crosshair</button>
+      <button id="btnZoom">Zoom</button>
+      <button id="btnIndicators">Indicators</button>
+      <button id="btnRefresh">Analyze</button>
+      <label class="auto-label"><input type="checkbox" id="autoRefresh"> Auto</label>
+    </div>
+  </nav>
+
+  <!-- main card (fills available area on mobile) -->
+  <main class="main-card" id="mainCard">
+    <div class="controls-row">
+      <select id="market">
+        <option value="crypto">Crypto</option>
+        <option value="forex">Forex</option>
+      </select>
+
+      <select id="asset"></select>
+
+      <div class="compact-stats">
+        <span id="priceText">—</span>
+        <span id="signalBadge" class="signal hold">HOLD</span>
+      </div>
+    </div>
+
+    <!-- charts area: wide and responsive -->
+    <section class="charts">
+      <div id="tvChart" class="chart-panel"></div>
+      <div id="rsiChart" class="chart-panel small"></div>
+    </section>
+
+    <!-- output / info -->
+    <section id="output" class="output-panel">
+      <div id="infoRows" class="info-rows">
+        <!-- dynamic content inserted by JS -->
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <small>Created by MAGNIFICO © 2025 — Optimized for Telegram WebApp</small>
+  </footer>
+
+  <!-- app script -->
+  <script src="app.js"></script>
 </body>
-    </html
+</html>
