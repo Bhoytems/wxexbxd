@@ -157,7 +157,24 @@ function detectMACDCross(macd, sig) {
   }
   return arrows;
 }
+/* ============================================================
+   TIMEFRAME BUTTON CLICK FIX
+============================================================ */
+const tfButtons = document.querySelectorAll(".tf-btn");
 
+tfButtons.forEach(btn => {
+  btn.addEventListener("click", () => {
+
+    // Remove active from all
+    tfButtons.forEach(b => b.classList.remove("active"));
+
+    // Add active to clicked
+    btn.classList.add("active");
+
+    // Re-analyze instantly
+    generateSignal();
+  });
+});
 /* ============================================================
    CHART TYPE
 ============================================================ */
@@ -171,6 +188,7 @@ document.getElementById("btnIndicators").onclick = () => {
   chartType = chartType === "line" ? "area" : "line";
   generateSignal();
 };
+
 
 /* ============================================================
    RENDER CHART
