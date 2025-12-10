@@ -63,6 +63,46 @@ document.getElementById("btnRefresh").addEventListener("click", () => {
 });
 
 /* ============================================================
+   TIMEFRAME FIX (CRYPTO + FOREX)
+============================================================ */
+const TF_MAP_BINANCE = {
+  "5s": "1m",
+  "15s": "1m",
+  "30s": "1m",
+  "1m": "1m",
+  "3m": "3m",
+  "5m": "5m",
+  "15m": "15m",
+  "30m": "30m",
+  "1h": "1h",
+  "4h": "4h",
+  "1d": "1d"
+};
+
+const TF_MAP_TWELVE = {
+  "5s": "1min",
+  "15s": "1min",
+  "30s": "1min",
+  "1m": "1min",
+  "3m": "3min",
+  "5m": "5min",
+  "15m": "15min",
+  "30m": "30min",
+  "1h": "1h",
+  "4h": "4h",
+  "1d": "1day"
+};
+
+/* Force timeframe buttons to switch correctly */
+document.querySelectorAll(".tf-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tf-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    generateSignal();
+  });
+});
+
+/* ============================================================
    INDICATOR FUNCTIONS
 ============================================================ */
 function SMA(arr, p) {
@@ -184,14 +224,12 @@ function renderChart(ohlc, ma5, ma20, rsiArr, macdArrows) {
     mainSeries.setData(arr);
   }
 
-  /* Moving averages */
   const ma5Series = chart.addLineSeries({ color:"#3b82f6", lineWidth:2 });
   const ma20Series = chart.addLineSeries({ color:"#a855f7", lineWidth:2 });
 
   ma5Series.setData(ohlc.map((c,i)=>({ time:c.time, value:ma5[i] })));
   ma20Series.setData(ohlc.map((c,i)=>({ time:c.time, value:ma20[i] })));
 
-  /* RSI chart */
   document.getElementById("rsiChart").innerHTML = "";
   const rsiChart = LightweightCharts.createChart(document.getElementById("rsiChart"), {
     layout:{ background:{color:"#0d1117"}, textColor:"#ccc" },
@@ -204,28 +242,24 @@ function renderChart(ohlc, ma5, ma20, rsiArr, macdArrows) {
 }
 
 /* ============================================================
-   MAIN ANALYZER (NOW SUPPORTS TWELVEDATA)
+   MAIN ANALYZER (TWELVEDATA + BINANCE)
 ============================================================ */
 async function generateSignal(){
   let market = document.getElementById("market").value;
   let asset  = document.getElementById("asset").value;
   let tf     = document.querySelector(".tf-btn.active")?.dataset.tf || "1m";
 
-  let interval = tf;
+  let interval = market === "crypto"
+    ? TF_MAP_BINANCE[tf] || "1m"
+    : TF_MAP_TWELVE[tf] || "1min";
 
   let url = "";
   let useTwelve = false;
 
-  /* ======================
-       CRYPTO → BINANCE
-     ====================== */
   if (market === "crypto") {
     url = `https://api.binance.com/api/v3/klines?symbol=${asset}&interval=${interval}&limit=120`;
   }
 
-  /* ======================
-        FOREX → TWELVEDATA
-     ====================== */
   if (market === "forex") {
     url =
       `https://api.twelvedata.com/time_series?symbol=${asset}` +
@@ -241,7 +275,6 @@ async function generateSignal(){
 
     let ohlc;
 
-    /* PARSE FOREX DATA */
     if (useTwelve) {
       const values = data.values.reverse();
       ohlc = values.map(v => ({
@@ -253,7 +286,6 @@ async function generateSignal(){
       }));
     }
 
-    /* PARSE CRYPTO DATA */
     else {
       ohlc = data.map(p => ({
         time: p[0]/1000,
@@ -266,7 +298,6 @@ async function generateSignal(){
 
     const prices = ohlc.map(t=>t.close);
 
-    /* Indicators */
     const ma5  = prices.map((_,i)=> i>=4  ? SMA(prices.slice(0,i+1),5)  : null);
     const ma20 = prices.map((_,i)=> i>=19 ? SMA(prices.slice(0,i+1),20) : null);
 
@@ -278,13 +309,11 @@ async function generateSignal(){
     const macdObj = MACD(prices);
     const arrows = detectMACDCross(macdObj.macd, macdObj.signal);
 
-    /* TP/SL */
     const current = prices.at(-1);
     const atr = ATR(ohlc, 14);
     const SL = (current - atr*1.5).toFixed(5);
     const TP = (current + atr*2).toFixed(5);
 
-    /* SIGNAL */
     let signal="HOLD", strength="Weak";
 
     if (ema9.at(-1) > ema21.at(-1) && rsiArr.at(-1) > 55) {
@@ -299,7 +328,6 @@ async function generateSignal(){
     let colorClass = signal==="BUY" ? "buy" :
                      signal==="SELL" ? "sell" : "hold";
 
-    /* UPDATE UI */
     document.getElementById("infoAsset").innerHTML = `${asset} — ${tf}`;
     document.getElementById("infoPrice").innerHTML = `$${current.toFixed(5)}`;
 
@@ -316,7 +344,6 @@ async function generateSignal(){
     badge.className = "signal-badge " + colorClass;
     badge.innerHTML = `${signal} (${strength})`;
 
-    /* Draw charts */
     renderChart(ohlc, ma5, ma20, rsiArr, arrows);
 
   } catch(err){
