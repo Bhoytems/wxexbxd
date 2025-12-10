@@ -1,342 +1,291 @@
-/* ============================================================
-   ASSET LIST
-============================================================ */
+/* ======== GLOBALS ======== */
+let chart, candlesSeries, ma5Series, ma20Series;
+let rsiChart, rsiSeries;
+let currentTF = "1m";
+let autoTimer = null;
+let crosshairOn = true;
+let indicatorsOn = true;
+
+/* ======== ELEMENTS ======== */
+const marketSel = document.getElementById("market");
+const assetSel  = document.getElementById("asset");
+
+const infoAsset = document.getElementById("infoAsset");
+const infoPrice = document.getElementById("infoPrice");
+const rsiVal    = document.getElementById("rsiVal");
+const ema9Val   = document.getElementById("ema9Val");
+const ema21Val  = document.getElementById("ema21Val");
+const macdVal   = document.getElementById("macdVal");
+const slVal     = document.getElementById("slVal");
+const tpVal     = document.getElementById("tpVal");
+
+const signalBadge = document.getElementById("signalBadge");
+
+const logoCircle = document.getElementById("logoCircle");
+
+/* ======== ASSETS ======== */
 const cryptoAssets = {
-  BTCUSDT: "Bitcoin (BTC/USDT)",
-  ETHUSDT: "Ethereum (ETH/USDT)",
-  SOLUSDT: "Solana (SOL/USDT)",
-  DOGEUSDT: "Dogecoin (DOGE/USDT)",
-  ADAUSDT: "Cardano (ADA/USDT)"
+  BTCUSDT:"Bitcoin (BTC/USDT)",
+  ETHUSDT:"Ethereum (ETH/USDT)",
+  SOLUSDT:"Solana (SOL/USDT)",
+  DOGEUSDT:"Dogecoin (DOGE/USDT)",
+  ADAUSDT:"Cardano (ADA/USDT)"
 };
-
 const forexAssets = {
-  "EURUSD": "EUR/USD",
-  "GBPUSD": "GBP/USD",
-  "USDJPY": "USD/JPY",
-  "AUDUSD": "AUD/USD",
-  "USDCAD": "USD/CAD"
+  "EURUSD":"EUR/USD",
+  "GBPUSD":"GBP/USD",
+  "USDJPY":"USD/JPY",
+  "AUDUSD":"AUD/USD",
+  "USDCAD":"USD/CAD"
 };
 
-function updateAssetOptions() {
-  const isCrypto = document.getElementById("market").value === "crypto";
-  const group = isCrypto ? cryptoAssets : forexAssets;
-  let assetSel = document.getElementById("asset");
+function fillAssets(){
+  const group = marketSel.value==="crypto" ? cryptoAssets : forexAssets;
   assetSel.innerHTML = "";
-
-  Object.entries(group).forEach(([v, t]) => {
-    let opt = document.createElement("option");
-    opt.value = v;
-    opt.textContent = t;
-    assetSel.appendChild(opt);
+  Object.entries(group).forEach(([v,t])=>{
+    const o=document.createElement("option");
+    o.value=v; o.textContent=t;
+    assetSel.appendChild(o);
   });
 }
-updateAssetOptions();
+fillAssets();
 
-/* ============================================================
-   LOGO SPIN TOGGLE
-============================================================ */
-const logo = document.getElementById("logoCircle");
-logo.addEventListener("click", () => {
-  logo.style.animationPlayState =
-    logo.style.animationPlayState === "paused" ? "running" : "paused";
-});
-
-/* ============================================================
-   ANALYZE BUTTON COLOR TOGGLE
-============================================================ */
-let analyzeColors = [
-  "linear-gradient(90deg,#009dff,#007dff)", // blue
-  "linear-gradient(90deg,#22c55e,#16a34a)", // green
-  "linear-gradient(90deg,#a855f7,#7e22ce)", // purple
-  "linear-gradient(90deg,#ef4444,#dc2626)"  // red
-];
-let colorIndex = 0;
-
-function toggleAnalyzeButton() {
-  colorIndex = (colorIndex + 1) % analyzeColors.length;
-  document.getElementById("analyzeBtn").style.background = analyzeColors[colorIndex];
-}
-
-/* ============================================================
-   TECHNICAL INDICATOR FUNCTIONS
-============================================================ */
-function SMA(arr, p) {
-  if (!arr || arr.length < p) return null;
+/* ======== SMALL HELPERS ======== */
+function SMA(arr,p){
+  if(arr.length<p) return null;
   return arr.slice(-p).reduce((a,b)=>a+b,0)/p;
 }
-
-function EMA(prices, period) {
-  if (!prices || prices.length === 0) return [];
-  const k = 2/(period+1);
-  let ema = [prices[0]];
-  for (let i=1;i<prices.length;i++) {
-    ema.push(prices[i]*k + ema[i-1]*(1-k));
+function EMA(prices,period){
+  const k=2/(period+1);
+  const ema=[prices[0]];
+  for(let i=1;i<prices.length;i++){
+    ema.push(prices[i]*k+ema[i-1]*(1-k));
   }
   return ema;
 }
-
-function RSI(prices, period=14) {
-  if (!prices || prices.length < 2) return 50;
-
-  let gains = [];
-  let losses = [];
-
-  for (let i=1; i<prices.length; i++){
-    let d = prices[i] - prices[i-1];
-    gains.push(d>0?d:0);
-    losses.push(d<0?Math.abs(d):0);
+function RSI(prices,period=14){
+  if(prices.length<2) return 50;
+  let gain=[],loss=[];
+  for(let i=1;i<prices.length;i++){
+    const d=prices[i]-prices[i-1];
+    gain.push(d>0?d:0);
+    loss.push(d<0?Math.abs(d):0);
   }
-
-  if (gains.length < period) return 50;
-
-  let avgG = SMA(gains, period);
-  let avgL = SMA(losses, period);
-
-  if (avgL === 0) return 100;
-
-  let RS = avgG / avgL;
-  return 100 - (100 / (1 + RS));
+  const avgG=SMA(gain,period), avgL=SMA(loss,period);
+  if(avgL===0) return 100;
+  const RS=avgG/avgL;
+  return 100-(100/(1+RS));
 }
-
-function ATR(ohlc, period=14){
-  if (!ohlc || ohlc.length < period+1) return 0;
-
-  let trs = [];
-  for(let i=1; i<ohlc.length; i++){
-    let h = ohlc[i].high;
-    let l = ohlc[i].low;
-    let pc = ohlc[i-1].close;
-    trs.push(Math.max(h-l, Math.abs(h-pc), Math.abs(l-pc)));
+function ATR(ohlc,period=14){
+  const trs=[];
+  for(let i=1;i<ohlc.length;i++){
+    const h=ohlc[i].high, l=ohlc[i].low, pc=ohlc[i-1].close;
+    trs.push(Math.max(h-l,Math.abs(h-pc),Math.abs(l-pc)));
   }
-
-  return SMA(trs, period) || 0;
+  return SMA(trs,period) || 0;
 }
-
-/* ============================================================
-   MACD
-============================================================ */
-function MACD(prices, fast=12, slow=26, signal=9) {
-  const emaFast = EMA(prices, fast);
-  const emaSlow = EMA(prices, slow);
-  const len = Math.min(emaFast.length, emaSlow.length);
-  let macd = [];
-
-  for (let i=0; i<len; i++) {
-    macd.push(emaFast[i] - emaSlow[i]);
+function MACD(prices,fast=12,slow=26,signal=9){
+  const ef=EMA(prices,fast);
+  const es=EMA(prices,slow);
+  const len=Math.min(ef.length,es.length);
+  const mac=[];
+  for(let i=0;i<len;i++) mac.push(ef[i]-es[i]);
+  const sig=EMA(mac,signal);
+  return {macd:mac,signal:sig};
+}
+function detectMACD(macd,sig){
+  const arr=[];
+  for(let i=1;i<macd.length && i<sig.length;i++){
+    if(macd[i-1]<sig[i-1] && macd[i]>sig[i]) arr.push({i,type:"BUY"});
+    if(macd[i-1]>sig[i-1] && macd[i]<sig[i]) arr.push({i,type:"SELL"});
   }
-
-  const sigLine = EMA(macd, signal);
-  return { macd, signal: sigLine };
+  return arr;
+}
+function tfToBinance(tf){
+  return tf;
 }
 
-function detectMACDCross(macd, sig) {
-  let arrows = [];
+/* ======== CHART INIT ======== */
+function initCharts(){
+  document.getElementById("tvChart").innerHTML="";
+  document.getElementById("rsiChart").innerHTML="";
 
-  for (let i=1; i<macd.length && i<sig.length; i++) {
-    if (macd[i-1] < sig[i-1] && macd[i] > sig[i])
-      arrows.push({ index: i, type: "BUY" });
-
-    if (macd[i-1] > sig[i-1] && macd[i] < sig[i])
-      arrows.push({ index: i, type: "SELL" });
-  }
-
-  return arrows;
-}
-
-/* ============================================================
-   CHART TYPE TRACKING
-============================================================ */
-let chartType = "candles";
-
-function setChartType(type) {
-  chartType = type;
-  generateSignal();
-}
-
-/* ============================================================
-   RENDER CHART
-============================================================ */
-function renderChart(ohlc, ma5, ma20, rsiArr, macdArrows) {
-  const container = document.getElementById("tvChart");
-  container.innerHTML = "";
-
-  const chart = LightweightCharts.createChart(container, {
-    layout:{ background:{color:"#0d1117"}, textColor:"#ccc" },
-    grid:{ vertLines:{color:"#222"}, horzLines:{color:"#222"} },
-    width: container.clientWidth,
-    height: 380
+  chart = LightweightCharts.createChart(document.getElementById("tvChart"),{
+    layout:{background:{color:"#0d1117"},textColor:"#ccc"},
+    grid:{vertLines:{color:"#1a1a1a"},horzLines:{color:"#1a1a1a"}},
+    width:document.getElementById("tvChart").clientWidth,
+    height:320
   });
-
-  let mainSeries;
-
-  if (chartType === "candles") {
-    mainSeries = chart.addCandlestickSeries({
-      upColor:"#22c55e", downColor:"#ef4444",
-      borderUpColor:"#22c55e", borderDownColor:"#ef4444"
-    });
-    mainSeries.setData(ohlc);
-  }
-
-  if (chartType === "line") {
-    let lineData = ohlc.map(c => ({ time:c.time, value:c.close }));
-    mainSeries = chart.addLineSeries({ color:"#4ea8ff", lineWidth:2 });
-    mainSeries.setData(lineData);
-  }
-
-  if (chartType === "area") {
-    let areaData = ohlc.map(c => ({ time:c.time, value:c.close }));
-    mainSeries = chart.addAreaSeries({
-      topColor:"rgba(0,122,255,0.4)",
-      bottomColor:"rgba(0,122,255,0.05)",
-      lineColor:"#4ea8ff",
-      lineWidth:2
-    });
-    mainSeries.setData(areaData);
-  }
-
-  /* MOVING AVERAGES */
-  const ma5Data = ohlc.map((c,i)=>({ time:c.time, value: ma5[i] || null }));
-  const ma20Data = ohlc.map((c,i)=>({ time:c.time, value: ma20[i] || null }));
-
-  const ma5Series = chart.addLineSeries({ color:"#3b82f6", lineWidth:2 });
-  const ma20Series = chart.addLineSeries({ color:"#a855f7", lineWidth:2 });
-
-  ma5Series.setData(ma5Data.filter(t=>t.value));
-  ma20Series.setData(ma20Data.filter(t=>t.value));
-
-  /* MACD ARROWS */
-  if (chartType === "candles") {
-    const markers = macdArrows.map(a => {
-      const candle = ohlc[a.index];
-      if (!candle) return null;
-      return {
-        time: candle.time,
-        position: a.type==="BUY" ? 'belowBar' : 'aboveBar',
-        color: a.type==="BUY" ? '#22c55e' : '#ef4444',
-        shape: a.type==="BUY" ? 'arrowUp' : 'arrowDown',
-        text: a.type
-      };
-    }).filter(Boolean);
-
-    mainSeries.setMarkers(markers);
-  }
-
-  /* RSI CHART */
-  const rsiBox = document.getElementById("rsiChart");
-  rsiBox.innerHTML = "";
-
-  const rsiChart = LightweightCharts.createChart(rsiBox, {
-    layout:{ background:{color:"#0d1117"}, textColor:"#ccc" },
-    width:rsiBox.clientWidth,
-    height:140
+  candlesSeries = chart.addCandlestickSeries({
+    upColor:"#22c55e", downColor:"#ef4444",
+    borderUpColor:"#22c55e", borderDownColor:"#ef4444"
   });
+  ma5Series = chart.addLineSeries({color:"#3b82f6",lineWidth:2,visible:true});
+  ma20Series = chart.addLineSeries({color:"#a855f7",lineWidth:2,visible:true});
 
-  const rsiLine = rsiChart.addLineSeries({ color:"#facc15", lineWidth:2 });
-  const rsiData = ohlc.map((c,i)=>({ time:c.time, value: rsiArr[i] || null }));
-  rsiLine.setData(rsiData.filter(p=>p.value));
+  rsiChart = LightweightCharts.createChart(document.getElementById("rsiChart"),{
+    layout:{background:{color:"#0d1117"},textColor:"#ccc"},
+    width:document.getElementById("rsiChart").clientWidth,
+    height:120
+  });
+  rsiSeries = rsiChart.addLineSeries({color:"#facc15",lineWidth:2});
 }
 
-/* ============================================================
-   MAIN SIGNAL FUNCTION
-============================================================ */
+window.addEventListener("resize",()=>{
+  if(chart){
+    chart.resize(document.getElementById("tvChart").clientWidth,320);
+  }
+  if(rsiChart){
+    rsiChart.resize(document.getElementById("rsiChart").clientWidth,120);
+  }
+});
+
+/* ======== MAIN SIGNAL FUNCTION ======== */
 async function generateSignal(){
-  let market = document.getElementById("market").value;
-  let asset = document.getElementById("asset").value;
-  let tf = document.getElementById("timeframe").value;
+  const asset = assetSel.value;
+  const tf = currentTF;
 
-  const tfMap = { "5s":"1m", "30s":"1m", "1m":"1m", "3m":"3m", "5m":"5m" };
-  let interval = tfMap[tf];
+  const interval = tfToBinance(tf);
+  let url = `https://api.binance.com/api/v3/klines?symbol=${asset}&interval=${interval}&limit=200`;
 
-  try {
-    const url=`https://api.binance.com/api/v3/klines?symbol=${asset}&interval=${interval}&limit=120`;
-    const res = await fetch(url);
-    const data = await res.json();
+  try{
+    const r=await fetch(url);
+    const d=await r.json();
 
-    const ohlc = data.map(p => ({
-      time: p[0]/1000,
-      open:+p[1], high:+p[2], low:+p[3], close:+p[4]
+    const ohlc = d.map(x=>({
+      time:x[0]/1000,
+      open:+x[1],high:+x[2],low:+x[3],close:+x[4]
     }));
 
     const prices = ohlc.map(v=>v.close);
 
-    /* INDICATORS */
-    const ma5  = prices.map((_,i)=> (i+1)>=5  ? SMA(prices.slice(0,i+1),5)  : null);
-    const ma20 = prices.map((_,i)=> (i+1)>=20 ? SMA(prices.slice(0,i+1),20) : null);
+    const ma5  = prices.map((_,i)=> (i>=4?SMA(prices.slice(0,i+1),5):null));
+    const ma20 = prices.map((_,i)=> (i>=19?SMA(prices.slice(0,i+1),20):null));
 
-    const ema9  = EMA(prices, 9);
-    const ema21 = EMA(prices, 21);
+    const ema9  = EMA(prices,9);
+    const ema21 = EMA(prices,21);
 
-    const rsiArr = prices.map((_,i)=> (i+1)>=14 ? RSI(prices.slice(0,i+1),14) : null);
+    const rsiArr = prices.map((_,i)=> (i>=14?RSI(prices.slice(0,i+1),14):null));
 
-    const macdObj = MACD(prices);
-    const arrows = detectMACDCross(macdObj.macd, macdObj.signal);
+    const macObj = MACD(prices);
+    const arrows = detectMACD(macObj.macd,macObj.signal);
 
-    /* TP / SL */
-    const current = prices.at(-1);
-    const atr = ATR(ohlc, 14);
-    const SL = (current - atr*1.5).toFixed(4);
-    const TP = (current + atr*2).toFixed(4);
+    const cur = prices.at(-1);
+    const atr = ATR(ohlc,14);
 
-    /* SIGNAL LOGIC */
-    let signal="HOLD", strength="Weak";
+    const SL = cur-atr*1.5;
+    const TP = cur+atr*2;
 
-    if (ema9.at(-1) > ema21.at(-1) && rsiArr.at(-1) > 55) {
-      signal="BUY"; 
-      strength = rsiArr.at(-1) > 65 ? "Strong" : "Moderate";
-    }
-    else if (ema9.at(-1) < ema21.at(-1) && rsiArr.at(-1) < 45) {
-      signal="SELL";
-      strength = rsiArr.at(-1) < 35 ? "Strong" : "Moderate";
+    /* === SIGNAL LOGIC === */
+    let sig="HOLD", strength="Weak";
+    const rsiNow = rsiArr.at(-1);
+    if(ema9.at(-1)>ema21.at(-1) && rsiNow>55){
+      sig="BUY"; strength=rsiNow>65?"Strong":"Moderate";
+    }else if(ema9.at(-1)<ema21.at(-1) && rsiNow<45){
+      sig="SELL"; strength=rsiNow<35?"Strong":"Moderate";
     }
 
-    let colorClass =
-      signal==="BUY" ? "buy" :
-      signal==="SELL" ? "sell" : "hold";
+    /* ===== UPDATE UI ABOVE CHART ===== */
+    infoAsset.textContent = `${asset} — ${tf}`;
+    infoPrice.textContent = `$${cur.toFixed(4)}`;
+    rsiVal.textContent    = rsiNow?.toFixed(2) || "—";
+    ema9Val.textContent   = ema9.at(-1)?.toFixed(4) || "—";
+    ema21Val.textContent  = ema21.at(-1)?.toFixed(4) || "—";
+    macdVal.textContent   = macObj.macd.at(-1)?.toFixed(4) || "—";
+    slVal.textContent     = SL.toFixed(4);
+    tpVal.textContent     = TP.toFixed(4);
 
-    /* INSERT INTO STATS BOX ABOVE CHART */
-    document.getElementById("statsBox").innerHTML = `
-      <div><b>${asset}</b> — <b>${tf}</b></div>
+    /* badge */
+    signalBadge.className = "signal-badge";
+    if(sig==="BUY") signalBadge.classList.add("buy");
+    else if(sig==="SELL") signalBadge.classList.add("sell");
+    else signalBadge.classList.add("hold");
+    signalBadge.textContent = sig;
 
-      <div style="margin-top:6px;">
-        Price: <b>$${current.toFixed(4)}</b> |
-        RSI: <b>${(rsiArr.at(-1) || 0).toFixed(2)}</b>
-      </div>
+    /* CHART RENDER */
+    if(!chart) initCharts();
 
-      <div style="margin-top:6px;">
-        SL: <b class="sell">${SL}</b> |
-        TP: <b class="buy">${TP}</b>
-      </div>
+    candlesSeries.setData(ohlc);
 
-      <div style="margin-top:6px;">
-        EMA9: <b>${ema9.at(-1).toFixed(4)}</b> |
-        EMA21: <b>${ema21.at(-1).toFixed(4)}</b>
-      </div>
+    const ma5Data  = ohlc.map((c,i)=>({time:c.time,value:ma5[i]})).filter(v=>v.value);
+    const ma20Data = ohlc.map((c,i)=>({time:c.time,value:ma20[i]})).filter(v=>v.value);
+    ma5Series.setData(ma5Data);
+    ma20Series.setData(ma20Data);
 
-      <div class="signal ${colorClass}" style="margin-top:10px;">
-        ${signal} — ${strength}
-      </div>
-    `;
+    const markers = arrows.map(a=>{
+      const c=ohlc[a.i];
+      if(!c) return null;
+      const buy = a.type==="BUY";
+      return{
+        time:c.time,
+        position:buy?"belowBar":"aboveBar",
+        color:buy?"#22c55e":"#ef4444",
+        shape:buy?"arrowUp":"arrowDown",
+        text:a.type
+      };
+    }).filter(Boolean);
+    candlesSeries.setMarkers(markers);
 
-    /* RENDER THE CHART */
-    renderChart(ohlc, ma5, ma20, rsiArr, arrows);
+    const rsiData = ohlc.map((c,i)=>({time:c.time,value:rsiArr[i]})).filter(v=>v.value);
+    rsiSeries.setData(rsiData);
 
-  } catch(err){
-    console.error(err);
-    document.getElementById("statsBox").innerHTML =
-      `<span style="color:red;">Error fetching data</span>`;
+  }catch(e){
+    console.error(e);
   }
 }
 
-/* ============================================================
-   AUTO REFRESH
-============================================================ */
-let autoRefreshInterval=null;
-
-function toggleAutoRefresh(){
-  if(document.getElementById("autoRefresh").checked){
+/* ======== TOOLBAR EVENTS ======== */
+document.querySelectorAll(".tf-btn").forEach(btn=>{
+  btn.onclick=()=>{
+    document.querySelectorAll(".tf-btn").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    currentTF = btn.dataset.tf;
     generateSignal();
-    autoRefreshInterval=setInterval(generateSignal,5000);
-  } else {
-    clearInterval(autoRefreshInterval);
   }
-}
+});
+
+document.getElementById("btnCross").onclick=()=>{
+  crosshairOn=!crosshairOn;
+  chart.applyOptions({crosshair:{mode:crosshairOn?0:-1}});
+  document.getElementById("btnCross").textContent = crosshairOn?"Crosshair":"Cross Off";
+};
+
+document.getElementById("btnIndicators").onclick=()=>{
+  indicatorsOn=!indicatorsOn;
+  ma5Series.applyOptions({visible:indicatorsOn});
+  ma20Series.applyOptions({visible:indicatorsOn});
+  rsiSeries.applyOptions({visible:indicatorsOn});
+  document.getElementById("btnIndicators").textContent = indicatorsOn?"Indicators":"Ind Off";
+};
+
+document.getElementById("btnRefresh").onclick=()=>generateSignal();
+
+document.getElementById("autoRefresh").onchange=e=>{
+  clearInterval(autoTimer);
+  if(e.target.checked){
+    autoTimer=setInterval(generateSignal,5000);
+    generateSignal();
+  }
+};
+
+/* ======== LOGO SPIN TOGGLE ======== */
+document.getElementById("logoWrap").onclick=()=>{
+  logoCircle.classList.toggle("paused");
+};
+
+/* ======== STARTUP ======== */
+(function startup(){
+  fillAssets();
+  assetSel.onchange=generateSignal;
+  marketSel.onchange=()=>{
+    fillAssets();
+    generateSignal();
+  };
+
+  initCharts();
+  generateSignal();
+
+  try{
+    if(window.Telegram && Telegram.WebApp) Telegram.WebApp.expand();
+  }catch(e){}
+})();
