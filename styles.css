@@ -1,132 +1,189 @@
-/* GENERAL */
-body {
-    margin: 0;
-    padding: 0;
-    font-family: 'Poppins', sans-serif;
-    background: linear-gradient(135deg, #05070d, #0d1117);
-    color: #e6edf3;
+:root{
+  --bg1:#05070d;
+  --bg2:#0d1117;
+  --accent:#00aaff;
+  --muted:#8892a0;
+  --glass:rgba(255,255,255,0.04);
 }
 
-.container {
-    max-width: 960px;
-    margin: auto;
-    padding: 15px;
+html, body{
+  margin:0;padding:0;
+  background:linear-gradient(135deg,var(--bg1),var(--bg2));
+  font-family:"Poppins",sans-serif;
+  color:#e6edf3;
+  -webkit-font-smoothing:antialiased;
 }
 
-/* LOGO */
-.header {
-    text-align: center;
-    padding-top: 25px;
-}
-.logo-circle {
-    width: 110px;
-    height: 110px;
-    border-radius: 50%;
-    border: 3px solid rgba(0,150,255,0.4);
-    animation: spin 6s linear infinite;
-    box-shadow: 0 0 20px rgba(0,150,255,0.4);
-    object-fit: cover;
+body{
+  padding:env(safe-area-inset-top) 12px env(safe-area-inset-bottom);
 }
 
-/* STOP SPIN ON TAP FOR MOBILE */
-.logo-circle:active {
-    animation-play-state: paused;
+.app-header{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  margin:10px auto;
+  max-width:1100px;
 }
 
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to   { transform: rotate(360deg); }
+.logo-circle{
+  width:85px; height:85px;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(255,255,255,0.02);
+  border:2px solid rgba(0,170,255,0.25);
+  color:var(--accent);
+  font-weight:700;
+  animation:spin 6s linear infinite;
+}
+.logo-circle.paused{ animation-play-state:paused; }
+
+@keyframes spin{
+  from{ transform:rotate(0deg);}
+  to{ transform:rotate(360deg);}
 }
 
-/* TITLES */
-.title {
-    text-align: center;
-    font-size: 26px;
-    font-weight: 700;
-    color: #4ea8ff;
+.app-title h1{
+  margin:0; font-size:22px; color:#8fd0ff;
 }
-.subtitle {
-    text-align: center;
-    color: #8994a2;
-    margin-top: -10px;
+.subtitle{
+  margin:0; font-size:12px; color:var(--muted);
 }
 
-/* CONTROLS */
-.controls {
-    text-align: center;
-}
-.controls select,
-.controls button,
-.controls label {
-    padding: 12px 18px;
-    margin: 7px;
-    border-radius: 12px;
-    border: 1px solid rgba(255,255,255,0.08);
-    background: rgba(20,25,35,0.8);
-    color: #cdd3de;
-    font-size: 15px;
-}
-.controls button {
-    background: linear-gradient(90deg,#009dff,#007dff);
-    font-weight: 700;
-    transition: .3s;
-}
-.controls button:hover {
-    transform: scale(1.04);
-    opacity: .85;
+.toolbar{
+  display:flex; justify-content:space-between; flex-wrap:wrap;
+  gap:10px; padding:10px;
+  background:rgba(255,255,255,0.02);
+  border:1px solid rgba(255,255,255,0.03);
+  border-radius:12px;
+  max-width:1100px;
+  margin:auto;
 }
 
-/* STATS BOX ABOVE CHART */
-.stats-box {
-    margin-top: 20px;
-    padding: 18px;
-    background: rgba(15,18,25,0.7);
-    border-radius: 18px;
-    border: 1px solid rgba(255,255,255,0.05);
-    backdrop-filter: blur(12px);
-    text-align: center;
-    color: #e9edf3;
-    font-size: 18px;
-    font-weight: 600;
+.tf-group{ display:flex; gap:6px; flex-wrap:wrap; }
+.tf-btn{
+  padding:7px 10px;
+  border:1px solid rgba(255,255,255,0.05);
+  border-radius:8px;
+  background:transparent;
+  color:#cfeeff;
+}
+.tf-btn.active{
+  background:linear-gradient(90deg,#0078ff,#00b0ff);
+  color:#001824;
+  border:none;
+  box-shadow:0 4px 16px rgba(0,160,255,0.2);
 }
 
-/* SIGNAL COLORS */
-.buy { color: #29ff84; text-shadow: 0 0 10px #29ff84; }
-.sell { color: #ff4d4d; text-shadow: 0 0 10px #ff4d4d; }
-.hold { color: #ccc; }
-
-/* CHARTS */
-#tvChart {
-    width: 100%;
-    height: 380px;
-    margin-top: 10px;
+.tools button{
+  padding:7px 10px;
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,0.05);
+  background:transparent;
+  color:#e6edf3;
 }
-#rsiChart {
-    width: 100%;
-    height: 140px;
-    margin-top: 15px;
+.auto-label{
+  color:#cfeeff;
+  font-size:13px;
+  display:flex; align-items:center; gap:5px;
 }
 
-/* TRADINGVIEW TOOLBAR */
-.toolbar {
-    text-align: center;
-    margin-top: 15px;
-}
-.toolbar button {
-    padding: 8px 14px;
-    border-radius: 8px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.1);
-    color: #bfc9d5;
-    margin: 5px;
-}
-.toolbar button:hover {
-    background: rgba(255,255,255,0.15);
+.main-card{
+  margin:14px auto;
+  max-width:1100px;
+  background:rgba(15,20,30,0.85);
+  border-radius:18px;
+  padding:16px;
+  border:1px solid rgba(255,255,255,0.03);
 }
 
-/* MOBILE OPTIMIZATION */
-@media (max-width: 520px) {
-    #tvChart { height: 300px; }
-    #rsiChart { height: 120px; }
-    .stats-box { font-size: 16px; }
+.controls-row{
+  display:flex; justify-content:space-between;
+  gap:8px; flex-wrap:wrap;
+}
+
+.controls-row select{
+  padding:10px;
+  background:rgba(0,0,0,0.3);
+  border:1px solid rgba(255,255,255,0.05);
+  border-radius:8px;
+  color:#fff;
+}
+
+/* PREMIUM INFO BLOCK (ABOVE CHART) */
+.premium-info{
+  margin-top:14px;
+  padding:16px;
+  background:rgba(255,255,255,0.03);
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,0.05);
+}
+
+.info-header{
+  display:flex; justify-content:space-between;
+  align-items:center;
+}
+
+.info-asset{
+  font-size:18px;
+  font-weight:700;
+  color:#aee1ff;
+}
+
+.signal-badge{
+  padding:6px 12px;
+  border-radius:8px;
+  font-weight:700;
+  font-size:14px;
+}
+.signal-badge.buy{ background:#22ff82; color:#00200d; }
+.signal-badge.sell{ background:#ff4d4d; color:#270000; }
+.signal-badge.hold{ background:#636e7b; color:#000; }
+
+.info-price{
+  margin-top:8px;
+  font-size:26px;
+  font-weight:700;
+  color:#fff;
+}
+
+.info-grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:8px;
+  margin-top:12px;
+  font-size:15px;
+}
+
+/* Charts */
+.charts{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  margin-top:16px;
+}
+.chart-panel{
+  width:100%;
+  min-height:300px;
+  background:rgba(255,255,255,0.02);
+  border-radius:12px;
+}
+.chart-panel.small{
+  min-height:120px;
+}
+
+.app-footer{
+  text-align:center;
+  color:var(--muted);
+  margin-top:16px;
+  font-size:12px;
+}
+
+/* Mobile */
+@media (max-width:480px){
+  .info-grid{
+    grid-template-columns:1fr 1fr;
+    font-size:14px;
+  }
+  .chart-panel{ min-height:260px; }
 }
