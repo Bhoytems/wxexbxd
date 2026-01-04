@@ -1,94 +1,50 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <meta name="theme-color" content="#0d1117" />
-  <title>Pro v4.3 – Signal Analyzer</title>
+  <meta charset="UTF-8">
+  <title>Pro v3.7 ExpertOption Signal Analyzer</title>
 
-  <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="styles.css" />
+  <!-- CSS -->
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<header class="app-header">
-  <div class="logo-wrap" id="logoWrap">
-  <img src="https://ik.imagekit.io/fnedxfxsk/thymagnifico"
-       id="logoCircle"
-       class="logo-circle"
-       alt="Logo" />
-</div>
+  <div class="box">
+    <h2>📊 Pro v3.7 ExpertOption Signal Analyzer</h2>
+    <p>Binance-powered • ExpertOption-timed</p>
 
-  <div class="app-title">
-    <h1>TRADE ANALYZER</h1>
-    <p class="subtitle">Crypto Signal Analyzer</p>
-  </div>
-</header>
-
-<!-- TradingView toolbar -->
-<nav class="toolbar" id="toolbar">
-  <div class="tf-group">
-    <button class="tf-btn active" data-tf="1m">1m</button>
-    <button class="tf-btn" data-tf="3m">3m</button>
-    <button class="tf-btn" data-tf="5m">5m</button>
-    <button class="tf-btn" data-tf="15m">15m</button>
-    <button class="tf-btn" data-tf="1h">1h</button>
-    <button class="tf-btn" data-tf="1d">1d</button>
-  </div>
-
-  <div class="tools">
-    <button id="btnCross">Crosshair</button>
-    <button id="btnIndicators">Indicators</button>
-    <button id="btnRefresh">Analyze</button>
-    <label class="auto-label"><input type="checkbox" id="autoRefresh"> Auto</label>
-  </div>
-</nav>
-
-<main class="main-card">
-
-  <!-- Controls: Market + Asset -->
-  <div class="controls-row">
-    <select id="market">
-      <option value="crypto">Crypto</option>
+    <select id="asset">
+      <option value="BTCUSDT">Bitcoin (BTC/USDT)</option>
+      <option value="ETHUSDT">Ethereum (ETH/USDT)</option>
+      <option value="SOLUSDT">Solana (SOL/USDT)</option>
+      <option value="ADAUSDT">Cardano (ADA/USDT)</option>
+      <option value="XRPUSDT">Ripple (XRP/USDT)</option>
+      <option value="LTCUSDT">Litecoin (LTC/USDT)</option>
+      <option value="BNBUSDT">Binance Coin (BNB/USDT)</option>
+      <option value="DOGEUSDT">Dogecoin (DOGE/USDT)</option>
+      <option value="MATICUSDT">Polygon (MATIC/USDT)</option>
     </select>
 
-    <select id="asset"></select>
+    <select id="timeframe">
+      <option value="30s">30 Seconds</option>
+      <option value="1m" selected>1 Minute</option>
+      <option value="3m">3 Minutes</option>
+      <option value="5m">5 Minutes</option>
+      <option value="1h">1 Hour</option>
+      <option value="4h">4 Hours</option>
+    </select>
+
+    <button onclick="generateSignal()">🔍 Analyze</button>
+
+    <div id="output"></div>
   </div>
 
-  <!-- PREMIUM INFO BLOCK ABOVE CHART -->
-  <section class="premium-info" id="premiumInfo">
+  <footer>Powered by MAGNIFICO © 2025</footer>
 
-    <div class="info-header">
-      <div class="info-asset" id="infoAsset">BTC/USDT — 1m</div>
-      <div class="signal-badge hold" id="signalBadge">HOLD</div>
-    </div>
-
-    <div class="info-price" id="infoPrice">$0.0000</div>
-
-    <div class="info-grid">
-      <div><b>RSI:</b> <span id="rsiVal">—</span></div>
-      <div><b>EMA 9:</b> <span id="ema9Val">—</span></div>
-      <div><b>EMA 21:</b> <span id="ema21Val">—</span></div>
-      <div><b>MACD:</b> <span id="macdVal">—</span></div>
-      <div><b>SL:</b> <span id="slVal">—</span></div>
-      <div><b>TP:</b> <span id="tpVal">—</span></div>
-    </div>
-
-  </section>
-
-  <!-- Full-width charts -->
-  <section class="charts">
-    <div id="tvChart" class="chart-panel"></div>
-    <div id="rsiChart" class="chart-panel small"></div>
-  </section>
-
-</main>
-
-<footer class="app-footer">
-  <small>MAGNIFICO © 2025</small>
-</footer>
-
-<script src="app.js"></script>
+  <!-- JS -->
+  <script src="script.js"></script>
 </body>
 </html>
