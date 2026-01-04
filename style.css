@@ -1,0 +1,60 @@
+body {
+  font-family: 'Poppins', sans-serif;
+  background: radial-gradient(circle at top, #0e111a, #000);
+  color: #f0f6fc;
+  text-align: center;
+  padding: 20px;
+}
+
+.box {
+  background: rgba(22, 27, 34, 0.85);
+  backdrop-filter: blur(12px);
+  padding: 30px;
+  border-radius: 20px;
+  max-width: 850px;
+  margin: auto;
+  box-shadow: 0 0 30px rgba(0,0,0,0.5);
+}
+
+h2 {
+  color: #58a6ff;
+}
+
+select,
+button {
+  margin: 10px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: none;
+  background: #21262d;
+  color: #fff;
+}
+
+button {
+  background: linear-gradient(90deg, #238636, #2ea043);
+  cursor: pointer;
+}
+
+.signal {
+  font-size: 2em;
+  font-weight: bold;
+  margin-top: 15px;
+}
+
+.buy {
+  color: #3fb950;
+}
+
+.sell {
+  color: #f85149;
+}
+
+.hold {
+  color: #c9d1d9;
+}
+
+footer {
+  margin-top: 20px;
+  font-size: 0.8em;
+  color: #777;
+}
