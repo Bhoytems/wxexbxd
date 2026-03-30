@@ -1,50 +1,59 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Pro v3.7 ExpertOption Signal Analyzer</title>
-
-  <!-- Google Font -->
-  <link href="https://fonts.googleapis.com/css2?family=Poppins&display=swap" rel="stylesheet">
-
-  <!-- CSS -->
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Pro Signal Bot | Forex + Crypto Signal Analyzer</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div class="container">
+        <div class="main-card">
+            <h1>📊 Pro Signal Bot | Multi-Asset Analyzer</h1>
+            <div class="badge">🔥 11 Assets • Forex + Crypto • Real-Time Data • TP/SL Engine</div>
 
-  <div class="box">
-    <h2>📊 Pro v3.7 ExpertOption Signal Analyzer</h2>
-    <p>Enhanced and Optimized analyser for ExpertOption</p>
+            <div class="control-panel">
+                <select id="assetSelect">
+                    <optgroup label="📈 FOREX PAIRS">
+                        <option value="EUR/USD">EUR/USD (Euro/Dollar)</option>
+                        <option value="GBP/USD">GBP/USD (Pound/Dollar)</option>
+                        <option value="USD/JPY">USD/JPY (Dollar/Yen)</option>
+                        <option value="AUD/USD">AUD/USD (Aussie/Dollar)</option>
+                        <option value="USD/CAD">USD/CAD (Dollar/Loonie)</option>
+                    </optgroup>
+                    <optgroup label="🪙 CRYPTO (Binance)">
+                        <option value="BTCUSDT">₿ Bitcoin (BTC/USDT)</option>
+                        <option value="ETHUSDT">⟠ Ethereum (ETH/USDT)</option>
+                        <option value="SOLUSDT">◎ Solana (SOL/USDT)</option>
+                        <option value="BNBUSDT">🟡 Binance Coin (BNB/USDT)</option>
+                        <option value="XRPUSDT">💧 Ripple (XRP/USDT)</option>
+                        <option value="ADAUSDT">🟣 Cardano (ADA/USDT)</option>
+                    </optgroup>
+                </select>
+                <select id="tfSelect">
+                    <option value="1m">1 Minute</option>
+                    <option value="5m" selected>5 Minutes</option>
+                    <option value="15m">15 Minutes</option>
+                    <option value="30m">30 Minutes</option>
+                    <option value="1h">1 Hour</option>
+                    <option value="4h">4 Hours</option>
+                    <option value="1d">1 Day</option>
+                </select>
+                <button id="analyzeBtn">⚡ ANALYZE SIGNAL</button>
+            </div>
 
-    <select id="asset">
-      <option value="BTCUSDT">Bitcoin (BTC/USDT)</option>
-      <option value="ETHUSDT">Ethereum (ETH/USDT)</option>
-      <option value="SOLUSDT">Solana (SOL/USDT)</option>
-      <option value="ADAUSDT">Cardano (ADA/USDT)</option>
-      <option value="XRPUSDT">Ripple (XRP/USDT)</option>
-      <option value="LTCUSDT">Litecoin (LTC/USDT)</option>
-      <option value="BNBUSDT">Binance Coin (BNB/USDT)</option>
-      <option value="DOGEUSDT">Dogecoin (DOGE/USDT)</option>
-      <option value="MATICUSDT">Polygon (MATIC/USDT)</option>
-    </select>
+            <div id="analysisOutput">
+                <div style="text-align: center; padding: 40px;">
+                    <div class="loading-spinner"></div>
+                    <p style="margin-top: 15px; color: #9ca3af;">Ready to analyze Forex & Crypto assets</p>
+                </div>
+            </div>
+        </div>
+        <div class="footer-note">
+            ⚡ Forex: Twelve Data API • Crypto: Binance API • Advanced indicators with TP/SL optimization
+        </div>
+    </div>
 
-    <select id="timeframe">
-      <option value="30s">30 Seconds</option>
-      <option value="1m" selected>1 Minute</option>
-      <option value="3m">3 Minutes</option>
-      <option value="5m">5 Minutes</option>
-      <option value="1h">1 Hour</option>
-      <option value="4h">4 Hours</option>
-    </select>
-
-    <button onclick="generateSignal()">🔍 Analyze</button>
-
-    <div id="output"></div>
-  </div>
-
-  <footer>Powered by The Crypto Bhoy © 2026</footer>
-
-  <!-- JS -->
-  <script src="script.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
