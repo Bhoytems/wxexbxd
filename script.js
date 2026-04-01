@@ -351,7 +351,7 @@ async function runAnalysis() {
             </div>
             
             <div class="tp-sl-box">
-                <h3 style="margin-bottom: 12px;">💼 EXNESS TRADE SETUP</h3>
+                <h3 style="margin-bottom: 12px;">💼TRADE SETUP</h3>
                 <div class="tp-sl-row">
                     <div class="tp-item"><span class="tp-title">🎯 TAKE PROFIT 1</span><br><span class="price-level">${tp1Format}</span><br><span style="font-size:0.7rem;">+${rewardPercent.toFixed(2)}%</span></div>
                     <div class="tp-item"><span class="tp-title">🚀 TAKE PROFIT 2</span><br><span class="price-level">${tp2Format}</span><br><span style="font-size:0.7rem;">Extended Target</span></div>
