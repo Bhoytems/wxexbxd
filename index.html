@@ -1,59 +1,120 @@
+<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>h1ozer</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="theme-color" content="#000000">
+  <title>Trend Pulse | Secure Access</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Critical inline styles for passcode page - ensures immediate styling */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #000000; font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; color: #eef2ff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+    .passcode-container { max-width: 400px; width: 100%; }
+    .passcode-card { background: #0a0a0a; border-radius: 2rem; padding: 2rem 1.5rem; border: 1px solid #1f1f2a; text-align: center; box-shadow: 0 20px 35px -12px rgba(0,0,0,0.8); }
+    .logo-icon { font-size: 3rem; margin-bottom: 0.5rem; }
+    h2 { font-size: 1.5rem; margin-bottom: 0.5rem; background: linear-gradient(135deg, #fff, #9ca3af); background-clip: text; -webkit-background-clip: text; color: transparent; }
+    .sub { color: #6b7280; font-size: 0.8rem; margin-bottom: 1.5rem; }
+    .pin-input-group { display: flex; justify-content: center; gap: 12px; margin: 1.5rem 0; }
+    .pin-digit { width: 60px; height: 70px; background: #111418; border: 1px solid #2c2f36; border-radius: 1rem; color: #f0f3fa; font-size: 1.8rem; text-align: center; font-weight: 600; font-family: monospace; }
+    .pin-digit:focus { outline: none; border-color: #26A5E4; box-shadow: 0 0 8px #26A5E480; }
+    button { background: #26A5E4; border: none; color: #fff; padding: 0.8rem 2rem; border-radius: 3rem; font-size: 1rem; font-weight: 600; cursor: pointer; width: 100%; transition: 0.2s; font-family: inherit; }
+    button:hover { transform: scale(1.02); background: #3bb3f0; }
+    .error-msg { color: #ff4d6d; font-size: 0.75rem; margin-top: 1rem; min-height: 2rem; }
+    .keypad-hint { font-size: 0.65rem; color: #4b5563; margin-top: 1rem; }
+    @media (max-width: 480px) { .pin-digit { width: 50px; height: 60px; font-size: 1.5rem; } }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <div class="main-card">
-            <h1>R.O.M.A.E</h1>
-            <div class="badge">🔥 11 Assets • Forex + Crypto • Real-Time Data • TP/SL Engine</div>
-
-            <div class="control-panel">
-                <select id="assetSelect">
-                    <optgroup label="📈 FOREX PAIRS">
-                        <option value="EUR/USD">EUR/USD (Euro/Dollar)</option>
-                        <option value="GBP/USD">GBP/USD (Pound/Dollar)</option>
-                        <option value="USD/JPY">USD/JPY (Dollar/Yen)</option>
-                        <option value="AUD/USD">AUD/USD (Aussie/Dollar)</option>
-                        <option value="USD/CAD">USD/CAD (Dollar/Loonie)</option>
-                    </optgroup>
-                    <optgroup label="🪙 CRYPTO (Binance)">
-                        <option value="BTCUSDT">₿ Bitcoin (BTC/USDT)</option>
-                        <option value="ETHUSDT">⟠ Ethereum (ETH/USDT)</option>
-                        <option value="SOLUSDT">◎ Solana (SOL/USDT)</option>
-                        <option value="BNBUSDT">🟡 Binance Coin (BNB/USDT)</option>
-                        <option value="XRPUSDT">💧 Ripple (XRP/USDT)</option>
-                        <option value="ADAUSDT">🟣 Cardano (ADA/USDT)</option>
-                    </optgroup>
-                </select>
-                <select id="tfSelect">
-                    <option value="1m">1 Minute</option>
-                    <option value="5m" selected>5 Minutes</option>
-                    <option value="15m">15 Minutes</option>
-                    <option value="30m">30 Minutes</option>
-                    <option value="1h">1 Hour</option>
-                    <option value="4h">4 Hours</option>
-                    <option value="1d">1 Day</option>
-                </select>
-                <button id="analyzeBtn">⚡ ANALYZE SIGNAL</button>
-            </div>
-
-            <div id="analysisOutput">
-                <div style="text-align: center; padding: 40px;">
-                    <div class="loading-spinner"></div>
-                    <p style="margin-top: 15px; color: #9ca3af;">Ready to analyze Forex & Crypto assets</p>
-                </div>
-            </div>
-        </div>
-        <div class="footer-note">
-            ⚡ Forex • Crypto • Advanced indicators with TP/SL optimization
-        </div>
+<div class="passcode-container" id="passcodePage">
+  <div class="passcode-card">
+    <div class="logo-icon">📊</div>
+    <h2>Trend Pulse</h2>
+    <div class="sub">Channel Signals + Auto Win/Loss Verification</div>
+    <div class="pin-input-group" id="pinInputs">
+      <input type="password" maxlength="1" class="pin-digit" id="pin0" autofocus>
+      <input type="password" maxlength="1" class="pin-digit" id="pin1">
+      <input type="password" maxlength="1" class="pin-digit" id="pin2">
+      <input type="password" maxlength="1" class="pin-digit" id="pin3">
     </div>
+    <button id="unlockBtn">Unlock Access</button>
+    <div class="error-msg" id="passcodeError"></div>
+    <div class="keypad-hint">🔒 Default PIN: 0000</div>
+  </div>
+</div>
 
-    <script src="script.js"></script>
+<div id="mainApp" style="display: none;">
+  <div class="app-container">
+    <div class="signal-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <div class="badge">⚡ CHANNEL SIGNAL BOT | 5-MIN ANALYSIS</div>
+        <div class="status-container">
+          <div class="status-indicator">
+            <div id="statusLed" class="status-led offline"></div>
+            <span id="statusText" class="status-text offline">OFFLINE</span>
+          </div>
+        </div>
+      </div>
+      
+      <h1>Trend Pulse<br><span style="font-size: 0.8rem;">Telegram Channel Signals • 7-Min Trade Window • Auto Win/Loss</span></h1>
+
+      <div class="config-section">
+        <div class="config-label">📊 SELECT ASSETS TO MONITOR</div>
+        <div id="assetGrid" class="asset-selector-grid"></div>
+        <div id="selectedCount" class="selected-count">✓ 0 assets selected</div>
+      </div>
+
+      <div class="config-section">
+        <div class="config-label">🤖 TELEGRAM CHANNEL SETUP</div>
+        <input type="password" id="botToken" class="config-input" placeholder="Bot Token (from @BotFather)">
+        <input type="text" id="channelId" class="config-input" placeholder="Channel ID or @username">
+        <div style="font-size: 0.65rem; color: #6c757d; margin-bottom: 10px;">
+          ⚠️ Bot must be admin in the channel
+        </div>
+        <div class="button-group">
+          <button id="saveTelegramBtn" class="primary" style="flex: 1;">💾 Connect Bot</button>
+          <button id="disconnectBtn" class="danger" style="flex: 1;">🔌 Disconnect</button>
+        </div>
+        <div id="telegramTestResult" style="font-size: 0.7rem; margin-top: 8px;"></div>
+      </div>
+
+      <button id="analyzeBtn" style="width: 100%; margin: 10px 0;">🔍 Manual Analysis Now</button>
+
+      <div class="timer-box">
+        <div style="font-size: 0.7rem; color: #8b949e;">⏰ Next Entry Window (WAT - West Africa Time)</div>
+        <div id="tradeTimer" class="timer-digits">--:--</div>
+        <div style="font-size: 0.7rem; margin-top: 5px;">
+          🟢 Signal at :00/:05/:10/:15/:20/:25/:30/:35/:40/:45/:50/:55<br>
+          ✅ Entry: 2 min after signal | ⏱ Trade expiry: 7 min total
+        </div>
+      </div>
+
+      <div class="trend-pill" id="signalDisplay">
+        <div class="signal-big neutral">— WAITING —</div>
+      </div>
+
+      <div class="info-grid">
+        <div class="info-item"><div class="info-label">Current Price</div><div class="info-value" id="priceVal">—</div></div>
+        <div class="info-item"><div class="info-label">Change (5m)</div><div class="info-value" id="changeVal">—</div></div>
+        <div class="info-item"><div class="info-label">Trend Strength</div><div class="info-value" id="strengthVal">—</div></div>
+      </div>
+
+      <div id="extraIndicators" style="display: flex; justify-content: space-between; gap: 8px; background: #030303; padding: 8px 12px; border-radius: 2rem; font-size: 0.7rem; flex-wrap: wrap;">
+        <span>📊 EMA (9/21): <span id="emaSpan">—</span></span>
+        <span>📈 RSI: <span id="rsiSpan">—</span></span>
+        <span>⚡ Momentum: <span id="momSpan">—</span></span>
+      </div>
+      
+      <div class="last-updated" id="timestampMsg">🟢 Monitoring selected assets (5-min intervals)</div>
+      <div class="info-note">
+        📨 Signals + Win/Loss results automatically sent to Telegram<br>
+        🔄 Heartbeat ensures bot never goes idle | Auto-reconnect enabled
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
 </body>
 </html>
