@@ -25,6 +25,16 @@
     .keypad-hint { font-size: 0.65rem; color: #4b5563; margin-top: 1rem; }
     @media (max-width: 480px) { .pin-digit { width: 50px; height: 60px; font-size: 1.5rem; } }
   </style>
+  <script>
+  // Small check to ensure main app is hidden initially
+  document.addEventListener('DOMContentLoaded', function() {
+    // Make sure main app is hidden, passcode page is visible
+    const mainApp = document.getElementById('mainApp');
+    const passcodePage = document.getElementById('passcodePage');
+    if (mainApp) mainApp.style.display = 'none';
+    if (passcodePage) passcodePage.style.display = 'flex';
+  });
+  </script>
 </head>
 <body>
 <div class="passcode-container" id="passcodePage">
