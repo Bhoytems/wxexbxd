@@ -1,4 +1,5 @@
-// app.js
+// app.js - FIXED VERSION
+
 // ======================= CONFIGURATION =======================
 const TWELVE_DATA_KEY = '2fb822c09c1c42e19c07e94090f18b42';
 
@@ -19,57 +20,110 @@ let lastHeartbeat = Date.now();
 const DEFAULT_PIN = '0000';
 
 function initPasscode() {
+  console.log("Initializing passcode page...");
   const inputs = ['pin0', 'pin1', 'pin2', 'pin3'];
+  
   inputs.forEach((id, idx) => {
     const input = document.getElementById(id);
-    input.addEventListener('input', (e) => {
-      if (e.target.value.length === 1 && idx < 3) {
-        document.getElementById(`pin${idx + 1}`).focus();
-      }
-    });
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Backspace' && e.target.value.length === 0 && idx > 0) {
-        document.getElementById(`pin${idx - 1}`).focus();
-      }
-    });
-  });
-  
-  document.getElementById('unlockBtn').addEventListener('click', () => {
-    const pin = inputs.map(id => document.getElementById(id).value).join('');
-    if (pin === DEFAULT_PIN) {
-      document.getElementById('passcodePage').style.display = 'none';
-      document.getElementById('mainApp').style.display = 'block';
-      initMainApp();
-    } else {
-      document.getElementById('passcodeError').innerText = '❌ Invalid PIN. Try again.';
-      inputs.forEach(id => { document.getElementById(id).value = ''; });
-      document.getElementById('pin0').focus();
-      setTimeout(() => { document.getElementById('passcodeError').innerText = ''; }, 2000);
+    if (input) {
+      input.addEventListener('input', (e) => {
+        if (e.target.value.length === 1 && idx < 3) {
+          const nextInput = document.getElementById(`pin${idx + 1}`);
+          if (nextInput) nextInput.focus();
+        }
+      });
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace' && e.target.value.length === 0 && idx > 0) {
+          const prevInput = document.getElementById(`pin${idx - 1}`);
+          if (prevInput) prevInput.focus();
+        }
+      });
     }
   });
+  
+  const unlockBtn = document.getElementById('unlockBtn');
+  if (unlockBtn) {
+    unlockBtn.addEventListener('click', () => {
+      const pin = inputs.map(id => {
+        const input = document.getElementById(id);
+        return input ? input.value : '';
+      }).join('');
+      
+      if (pin === DEFAULT_PIN) {
+        // CORRECT PIN - Show main app
+        document.getElementById('passcodePage').style.display = 'none';
+        document.getElementById('mainApp').style.display = 'block';
+        console.log("Access granted, loading main app...");
+        // Small delay to ensure DOM is ready
+        setTimeout(() => {
+          initMainApp();
+        }, 100);
+      } else {
+        // WRONG PIN
+        document.getElementById('passcodeError').innerText = '❌ Invalid PIN. Try again.';
+        inputs.forEach(id => { 
+          const input = document.getElementById(id);
+          if (input) input.value = ''; 
+        });
+        const firstPin = document.getElementById('pin0');
+        if (firstPin) firstPin.focus();
+        setTimeout(() => { 
+          const errorEl = document.getElementById('passcodeError');
+          if (errorEl) errorEl.innerText = ''; 
+        }, 2000);
+      }
+    });
+  }
   
   // Allow enter key
   document.querySelectorAll('.pin-digit').forEach(input => {
     input.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') document.getElementById('unlockBtn').click();
+      if (e.key === 'Enter') {
+        const unlockBtn = document.getElementById('unlockBtn');
+        if (unlockBtn) unlockBtn.click();
+      }
     });
   });
 }
 
 // ======================= MAIN APP INIT =======================
 function initMainApp() {
+  console.log("Initializing Trend Pulse main app...");
+  
+  // Check if main app elements exist
+  if (!document.getElementById('assetGrid')) {
+    console.error("Main app elements not found!");
+    return;
+  }
+  
   // Load saved data
   loadSavedSelections();
   loadChannelConfig();
   updateTimerDisplay();
-  runFullAnalysis(true);
+  
+  // Start analysis after a short delay
+  setTimeout(() => {
+    runFullAnalysis(true);
+  }, 500);
+  
   startAutoRefresh();
   startHeartbeat();
   
   // Event listeners
-  document.getElementById('analyzeBtn').addEventListener('click', () => runFullAnalysis(true));
-  document.getElementById('saveTelegramBtn').addEventListener('click', saveChannelConfig);
-  document.getElementById('disconnectBtn').addEventListener('click', disconnectBot);
+  const analyzeBtn = document.getElementById('analyzeBtn');
+  if (analyzeBtn) {
+    analyzeBtn.addEventListener('click', () => runFullAnalysis(true));
+  }
+  
+  const saveBtn = document.getElementById('saveTelegramBtn');
+  if (saveBtn) {
+    saveBtn.addEventListener('click', saveChannelConfig);
+  }
+  
+  const disconnectBtn = document.getElementById('disconnectBtn');
+  if (disconnectBtn) {
+    disconnectBtn.addEventListener('click', disconnectBot);
+  }
 }
 
 // WAT Timezone (UTC+1)
@@ -208,7 +262,6 @@ async function verifyAndSendResult(signalData) {
     const closes = isForex ? await fetchForexData(asset) : await fetchCryptoData(asset);
     if (!closes || closes.length === 0) return;
     const expiryPrice = closes[closes.length - 1];
-    const priceChange = ((expiryPrice - entryPrice) / entryPrice) * 100;
     
     let result = null;
     if (direction === 'BUY') {
@@ -299,8 +352,11 @@ function renderAssetGrid() {
                      <label for="chk_${asset.replace(/\//g, '_')}">${icon} ${displayName}</label>`;
     const checkbox = div.querySelector('input');
     checkbox.addEventListener('change', (e) => {
-      if (e.target.checked) { if (!selectedAssets.includes(asset)) selectedAssets.push(asset); }
-      else { selectedAssets = selectedAssets.filter(a => a !== asset); }
+      if (e.target.checked) { 
+        if (!selectedAssets.includes(asset)) selectedAssets.push(asset); 
+      } else { 
+        selectedAssets = selectedAssets.filter(a => a !== asset); 
+      }
       localStorage.setItem('trendpulse_channel_selected_assets', JSON.stringify(selectedAssets));
       const countEl = document.getElementById('selectedCount');
       if (countEl) countEl.innerHTML = `✓ ${selectedAssets.length} assets selected`;
@@ -318,8 +374,12 @@ function loadChannelConfig() {
   const channelInput = document.getElementById('channelId');
   if (tokenInput) tokenInput.value = channelConfig.botToken;
   if (channelInput) channelInput.value = channelConfig.channelId;
-  if (channelConfig.botToken && channelConfig.channelId) setTimeout(() => testChannelConnection(false), 1000);
-  else { channelConfig.isValid = false; updateConnectionStatus('offline'); }
+  if (channelConfig.botToken && channelConfig.channelId) {
+    setTimeout(() => testChannelConnection(false), 1000);
+  } else { 
+    channelConfig.isValid = false; 
+    updateConnectionStatus('offline'); 
+  }
 }
 
 // ======================= API & TECHNICAL ANALYSIS =======================
@@ -364,7 +424,7 @@ function calculateRSI(prices, period = 14) {
 }
 
 function detectTrend(prices) {
-  if (!prices || prices.length < 25) return { trend: 'NEUTRAL', confidence: 40, rsi: 50 };
+  if (!prices || prices.length < 25) return { trend: 'NEUTRAL', confidence: 40, rsi: 50, ema9: 0, ema21: 0, momentumPercent: 0, currentPrice: prices[prices.length-1] || 0 };
   const ema9 = calculateEMA(prices, 9);
   const ema21 = calculateEMA(prices, 21);
   const ema50 = calculateEMA(prices, 50);
@@ -380,4 +440,140 @@ function detectTrend(prices) {
   if (rsi > 58) bullishScore += 22;
   else if (rsi < 42) bearishScore += 22;
   if (momentumPercent > 0) bullishScore += Math.min(28, momentumPercent * 1.8);
-  else if (momentumPercent < 0) bear
+  else if (momentumPercent < 0) bearishScore += Math.min(28, Math.abs(momentumPercent) * 1.8);
+  let trend = 'NEUTRAL';
+  let confidence = 55;
+  if (bullishScore > bearishScore + 14) { trend = 'BULLISH'; confidence = 70 + Math.min(22, (bullishScore - bearishScore) / 2.5); }
+  else if (bearishScore > bullishScore + 14) { trend = 'BEARISH'; confidence = 70 + Math.min(22, (bearishScore - bullishScore) / 2.5); }
+  confidence = Math.min(94, Math.max(48, Math.floor(confidence)));
+  return { trend, confidence, rsi: rsi.toFixed(1), ema9: ema9.toFixed(5), ema21: ema21.toFixed(5), momentumPercent: momentumPercent.toFixed(3), currentPrice };
+}
+
+async function analyzeSingleAsset(asset) {
+  const isForex = isForexAsset(asset);
+  let displayName = asset.includes('USDT') ? asset.replace('USDT', '/USDT') : asset;
+  try {
+    const closes = isForex ? await fetchForexData(asset) : await fetchCryptoData(asset);
+    if (!closes || closes.length < 25) return null;
+    const result = detectTrend(closes);
+    const currentPrice = result.currentPrice || closes[closes.length-1];
+    const prevPrice = closes[closes.length-2] || currentPrice;
+    const changePercent = ((currentPrice - prevPrice) / prevPrice * 100).toFixed(4);
+    const finalSignal = result.trend === 'BULLISH' ? 'BUY' : (result.trend === 'BEARISH' ? 'SELL' : 'NEUTRAL');
+    const signalKey = `${asset}_signal`;
+    const lastSignal = lastSignals[signalKey];
+    
+    if (finalSignal !== 'NEUTRAL' && lastSignal !== finalSignal && channelConfig.isValid) {
+      const windowInfo = getTradeWindowInfo();
+      if (windowInfo.isInEntryWindow) {
+        const signalMsg = `${finalSignal === 'BUY' ? '🟢' : '🔴'} *${finalSignal} SIGNAL* 🔔\n\n📊 *Asset:* ${displayName}\n💰 *Price:* ${formatPrice(currentPrice, asset)}\n📈 *Expiry time: 5 mins* (${changePercent}%)\n🎯 *Confidence:* ${result.confidence}%\n\n⏰ *Entry window closes at:* ${windowInfo.entryEnd.toLocaleTimeString('en-GB')}\n⏱ *Trade expires at:* ${windowInfo.tradeExpiry.toLocaleTimeString('en-GB')}`;
+        const sent = await sendToChannel(signalMsg, true);
+        if (sent) {
+          lastSignals[signalKey] = finalSignal;
+          const signalId = `${asset}_${Date.now()}`;
+          pendingSignals[signalId] = {
+            asset: asset,
+            direction: finalSignal,
+            entryPrice: currentPrice,
+            entryTime: getWATTime(),
+            expiryTime: windowInfo.tradeExpiry,
+            displayName: displayName
+          };
+          console.log(`Signal sent: ${finalSignal} on ${asset}, will verify at ${windowInfo.tradeExpiry.toLocaleTimeString()}`);
+        }
+      }
+    } else if (finalSignal === 'NEUTRAL') {
+      lastSignals[signalKey] = null;
+    }
+    return { asset, displayName, result, currentPrice, changePercent, finalSignal };
+  } catch (err) {
+    console.error(`Error on ${asset}:`, err.message);
+    return null;
+  }
+}
+
+async function runFullAnalysis(updateUI = true) {
+  if (isAnalyzing) return;
+  isAnalyzing = true;
+  lastHeartbeat = Date.now();
+  
+  const analyzeBtn = document.getElementById('analyzeBtn');
+  if (updateUI && analyzeBtn) { 
+    analyzeBtn.disabled = true; 
+    analyzeBtn.innerHTML = '⏳ Analyzing...'; 
+  }
+  
+  const firstAsset = selectedAssets[0];
+  let uiResult = null;
+  for (const asset of selectedAssets) {
+    const result = await analyzeSingleAsset(asset);
+    if (result && updateUI && asset === firstAsset) uiResult = result;
+    await new Promise(resolve => setTimeout(resolve, 800));
+  }
+  
+  if (updateUI && uiResult) {
+    const priceEl = document.getElementById('priceVal');
+    const changeEl = document.getElementById('changeVal');
+    const strengthEl = document.getElementById('strengthVal');
+    const emaSpan = document.getElementById('emaSpan');
+    const rsiSpan = document.getElementById('rsiSpan');
+    const momSpan = document.getElementById('momSpan');
+    const signalDiv = document.getElementById('signalDisplay');
+    
+    if (priceEl) priceEl.innerHTML = formatPrice(uiResult.currentPrice, uiResult.asset);
+    if (changeEl) changeEl.innerHTML = `${uiResult.changePercent}%`;
+    if (strengthEl) strengthEl.innerHTML = `${uiResult.result.confidence}%`;
+    if (emaSpan) emaSpan.innerHTML = `${uiResult.result.ema9}/${uiResult.result.ema21}`;
+    if (rsiSpan) rsiSpan.innerHTML = uiResult.result.rsi;
+    if (momSpan) momSpan.innerHTML = uiResult.result.momentumPercent + '%';
+    if (signalDiv) {
+      if (uiResult.finalSignal === 'BUY') signalDiv.innerHTML = `<div class="signal-big bullish">🔺 BULLISH · BUY 🔺</div><div style="font-size:0.7rem;">Confidence ${uiResult.result.confidence}%</div>`;
+      else if (uiResult.finalSignal === 'SELL') signalDiv.innerHTML = `<div class="signal-big bearish">🔻 BEARISH · SELL 🔻</div><div style="font-size:0.7rem;">Confidence ${uiResult.result.confidence}%</div>`;
+      else signalDiv.innerHTML = `<div class="signal-big neutral">⚪ NEUTRAL · HOLD ⚪</div>`;
+    }
+  }
+  const timestampMsg = document.getElementById('timestampMsg');
+  if (timestampMsg) {
+    timestampMsg.innerHTML = `🕒 Last scan: ${new Date().toLocaleTimeString()} · Monitoring ${selectedAssets.length} assets · Active signals: ${Object.keys(pendingSignals).length}`;
+  }
+  if (updateUI && analyzeBtn) { 
+    analyzeBtn.disabled = false; 
+    analyzeBtn.innerHTML = '🔍 Manual Analysis Now'; 
+  }
+  isAnalyzing = false;
+}
+
+function formatPrice(price, asset) {
+  if (!price) return '—';
+  const isCrypto = asset.includes('USDT');
+  if (isCrypto) { 
+    if (price > 1000) return price.toFixed(2); 
+    if (price > 0.1) return price.toFixed(4); 
+    return price.toFixed(6); 
+  }
+  return price.toFixed(5);
+}
+
+function startAutoRefresh() {
+  const scheduleNextRun = () => {
+    const now = getWATTime();
+    const minutes = now.getMinutes();
+    const nextFiveMin = Math.ceil((minutes + 0.1) / 5) * 5;
+    let nextRun = new Date(now);
+    nextRun.setMinutes(nextFiveMin, 0, 0);
+    const delay = nextRun - now;
+    setTimeout(() => {
+      runFullAnalysis(true);
+      scheduleNextRun();
+    }, Math.max(1000, delay));
+  };
+  scheduleNextRun();
+  setInterval(() => { updateTimerDisplay(); }, 1000);
+}
+
+// ======================= START THE APP =======================
+// Wait for DOM to be fully loaded before initializing passcode
+document.addEventListener('DOMContentLoaded', function() {
+  console.log("DOM loaded, initializing passcode...");
+  initPasscode();
+});
