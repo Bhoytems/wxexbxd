@@ -1,6 +1,4 @@
-// app.js - FIXED VERSION
-
-// ======================= CONFIGURATION =======================
+// app.js - INSTANT SIGNAL VERSION with 5-MINUTE EXPIRY
 const TWELVE_DATA_KEY = '2fb822c09c1c42e19c07e94090f18b42';
 
 const ALL_ASSETS = {
@@ -10,140 +8,117 @@ const ALL_ASSETS = {
 
 let selectedAssets = [];
 let channelConfig = { botToken: '', channelId: '', isValid: false };
-let lastSignals = {};
+let lastSignalPerAsset = {};
 let pendingSignals = {};
 let isAnalyzing = false;
 let heartbeatInterval = null;
 let lastHeartbeat = Date.now();
+let continuousScanInterval = null;
 
-// ======================= PASSCODE PROTECTION =======================
+// ======================= PASSCODE =======================
 const DEFAULT_PIN = '0000';
 
 function initPasscode() {
-  console.log("Initializing passcode page...");
   const inputs = ['pin0', 'pin1', 'pin2', 'pin3'];
-  
   inputs.forEach((id, idx) => {
     const input = document.getElementById(id);
     if (input) {
       input.addEventListener('input', (e) => {
         if (e.target.value.length === 1 && idx < 3) {
-          const nextInput = document.getElementById(`pin${idx + 1}`);
-          if (nextInput) nextInput.focus();
+          const next = document.getElementById(`pin${idx + 1}`);
+          if (next) next.focus();
         }
       });
       input.addEventListener('keydown', (e) => {
         if (e.key === 'Backspace' && e.target.value.length === 0 && idx > 0) {
-          const prevInput = document.getElementById(`pin${idx - 1}`);
-          if (prevInput) prevInput.focus();
+          const prev = document.getElementById(`pin${idx - 1}`);
+          if (prev) prev.focus();
         }
       });
     }
   });
   
-  const unlockBtn = document.getElementById('unlockBtn');
-  if (unlockBtn) {
-    unlockBtn.addEventListener('click', () => {
-      const pin = inputs.map(id => {
-        const input = document.getElementById(id);
-        return input ? input.value : '';
-      }).join('');
-      
-      if (pin === DEFAULT_PIN) {
-        // CORRECT PIN - Show main app
-        document.getElementById('passcodePage').style.display = 'none';
-        document.getElementById('mainApp').style.display = 'block';
-        console.log("Access granted, loading main app...");
-        // Small delay to ensure DOM is ready
-        setTimeout(() => {
-          initMainApp();
-        }, 100);
-      } else {
-        // WRONG PIN
-        document.getElementById('passcodeError').innerText = '❌ Invalid PIN. Try again.';
-        inputs.forEach(id => { 
-          const input = document.getElementById(id);
-          if (input) input.value = ''; 
-        });
-        const firstPin = document.getElementById('pin0');
-        if (firstPin) firstPin.focus();
-        setTimeout(() => { 
-          const errorEl = document.getElementById('passcodeError');
-          if (errorEl) errorEl.innerText = ''; 
-        }, 2000);
-      }
-    });
-  }
-  
-  // Allow enter key
-  document.querySelectorAll('.pin-digit').forEach(input => {
-    input.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        const unlockBtn = document.getElementById('unlockBtn');
-        if (unlockBtn) unlockBtn.click();
-      }
-    });
+  document.getElementById('unlockBtn').addEventListener('click', () => {
+    const pin = inputs.map(id => document.getElementById(id).value).join('');
+    if (pin === DEFAULT_PIN) {
+      document.getElementById('passcodePage').style.display = 'none';
+      document.getElementById('mainApp').style.display = 'block';
+      setTimeout(() => initMainApp(), 100);
+    } else {
+      document.getElementById('passcodeError').innerText = '❌ Invalid PIN. Try again.';
+      inputs.forEach(id => { document.getElementById(id).value = ''; });
+      document.getElementById('pin0').focus();
+      setTimeout(() => { document.getElementById('passcodeError').innerText = ''; }, 2000);
+    }
   });
 }
 
-// ======================= MAIN APP INIT =======================
+// ======================= MAIN APP =======================
 function initMainApp() {
-  console.log("Initializing Trend Pulse main app...");
-  
-  // Check if main app elements exist
-  if (!document.getElementById('assetGrid')) {
-    console.error("Main app elements not found!");
-    return;
-  }
-  
-  // Load saved data
   loadSavedSelections();
   loadChannelConfig();
   updateTimerDisplay();
-  
-  // Start analysis after a short delay
-  setTimeout(() => {
-    runFullAnalysis(true);
-  }, 500);
-  
-  startAutoRefresh();
+  startContinuousScanning();
   startHeartbeat();
   
-  // Event listeners
-  const analyzeBtn = document.getElementById('analyzeBtn');
-  if (analyzeBtn) {
-    analyzeBtn.addEventListener('click', () => runFullAnalysis(true));
-  }
+  document.getElementById('analyzeBtn').addEventListener('click', () => forceAnalysis());
+  document.getElementById('saveTelegramBtn').addEventListener('click', saveChannelConfig);
+  document.getElementById('disconnectBtn').addEventListener('click', disconnectBot);
   
-  const saveBtn = document.getElementById('saveTelegramBtn');
-  if (saveBtn) {
-    saveBtn.addEventListener('click', saveChannelConfig);
-  }
-  
-  const disconnectBtn = document.getElementById('disconnectBtn');
-  if (disconnectBtn) {
-    disconnectBtn.addEventListener('click', disconnectBot);
-  }
+  setInterval(() => updateTimerDisplay(), 1000);
+  setInterval(() => checkExpiredSignals(), 5000);
 }
 
-// WAT Timezone (UTC+1)
+function startContinuousScanning() {
+  if (continuousScanInterval) clearInterval(continuousScanInterval);
+  continuousScanInterval = setInterval(() => {
+    runInstantAnalysis();
+  }, 30000);
+  setTimeout(() => runInstantAnalysis(), 2000);
+}
+
+async function forceAnalysis() {
+  await runInstantAnalysis(true);
+}
+
 function getWATTime() {
   return new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/Lagos' }));
 }
 
-// ======================= HEARTBEAT =======================
-function startHeartbeat() {
-  if (heartbeatInterval) clearInterval(heartbeatInterval);
-  heartbeatInterval = setInterval(() => {
-    const now = Date.now();
-    if (now - lastHeartbeat > 120000) {
-      console.log("Heartbeat: Bot appeared idle, refreshing connection...");
-      if (channelConfig.isValid && channelConfig.botToken && channelConfig.channelId) {
-        sendToChannel("🔄 *Heartbeat*: Bot is still active and monitoring markets.", true).catch(e=>console.log);
-      }
-    }
-    lastHeartbeat = now;
-  }, 60000);
+// ======================= 5-MINUTE TRADE WINDOW LOGIC =======================
+// Signal → 2 min entry window → expires at 5 minutes total
+function getTradeDeadlines(signalTime) {
+  const entryEnd = new Date(signalTime);
+  entryEnd.setMinutes(entryEnd.getMinutes() + 2);
+  const expiryTime = new Date(signalTime);
+  expiryTime.setMinutes(expiryTime.getMinutes() + 5);  // ← CHANGED: 5 min expiry
+  return { entryEnd, expiryTime };
+}
+
+function isWithinEntryWindow(signalTime) {
+  const now = getWATTime();
+  const entryEnd = new Date(signalTime);
+  entryEnd.setMinutes(entryEnd.getMinutes() + 2);
+  return now >= signalTime && now <= entryEnd;
+}
+
+function canSendSignal(asset, direction) {
+  const lastSignal = lastSignalPerAsset[asset];
+  if (!lastSignal) return true;
+  if (lastSignal.direction === direction) {
+    const timeSinceLast = (getWATTime() - lastSignal.time) / 1000 / 60;
+    return timeSinceLast >= 10;
+  }
+  return true;
+}
+
+function recordSentSignal(asset, direction, price, expiryTime) {
+  lastSignalPerAsset[asset] = {
+    direction: direction,
+    time: getWATTime(),
+    price: price,
+    expiryTime: expiryTime
+  };
 }
 
 // ======================= TELEGRAM FUNCTIONS =======================
@@ -178,12 +153,11 @@ async function testChannelConnection(showMessage = true) {
     return false;
   }
   updateConnectionStatus('checking');
-  const testMsg = '✅ *Active*';
-  const success = await sendToChannel(testMsg, true);
+  const success = await sendToChannel('✅ *Trend Pulse Active* - Instant signal mode | 5-min trades', true);
   if (success) {
     channelConfig.isValid = true;
     updateConnectionStatus('online');
-    if (showMessage) showTelegramResult('✅ Bot connected! Signals + Win/Loss results will be sent.', 'success');
+    if (showMessage) showTelegramResult('✅ Bot connected! Instant signals will be sent.', 'success');
     return true;
   } else {
     channelConfig.isValid = false;
@@ -255,24 +229,27 @@ function showTelegramResult(message, type) {
 // ======================= WIN/LOSS VERIFICATION =======================
 async function verifyAndSendResult(signalData) {
   if (!channelConfig.isValid) return;
-  const { asset, direction, entryPrice, expiryTime, displayName } = signalData;
+  const { asset, direction, entryPrice, expiryTime, displayName, signalId } = signalData;
   const isForex = ALL_ASSETS.forex.includes(asset);
   
   try {
     const closes = isForex ? await fetchForexData(asset) : await fetchCryptoData(asset);
     if (!closes || closes.length === 0) return;
     const expiryPrice = closes[closes.length - 1];
+    const priceChange = ((expiryPrice - entryPrice) / entryPrice) * 100;
     
     let result = null;
     if (direction === 'BUY') {
-      result = expiryPrice > entryPrice ? 'Win ✅' : 'Loss ❌';
+      result = expiryPrice > entryPrice ? 'WIN ✅' : 'LOSS ❌';
     } else {
-      result = expiryPrice < entryPrice ? 'Win ✅' : 'Loss ❌';
+      result = expiryPrice < entryPrice ? 'WIN ✅' : 'LOSS ❌';
     }
     
-    const resultMsg = `📊 *RESULT UPDATE* 📊\n\n${direction === 'BUY' ? '🟢' : '🔴'} *${direction} SIGNAL* for *${displayName}*\n🎯: *${result}*`;
+    const changePercent = priceChange.toFixed(4);
+    const resultMsg = `📊 *RESULT UPDATE* 📊\n\n${direction === 'BUY' ? '🟢' : '🔴'} *${direction} SIGNAL* for *${displayName}*\n💰 Entry: ${formatPrice(entryPrice, asset)}\n💰 Exit (5 min): ${formatPrice(expiryPrice, asset)}\n📉 Change: ${changePercent}%\n🎯 *RESULT: ${result}*`;
+    
     await sendToChannel(resultMsg, true);
-    console.log(`Result sent for ${asset}: ${result}`);
+    console.log(`Result sent for ${asset}: ${result} (${changePercent}%)`);
   } catch (err) {
     console.error(`Verification error for ${asset}:`, err);
   }
@@ -289,44 +266,30 @@ function checkExpiredSignals() {
   }
 }
 
-// ======================= TRADE WINDOWS & TIMER =======================
-function getTradeWindowInfo() {
-  const now = getWATTime();
-  const minutes = now.getMinutes();
-  const nextFiveMin = Math.ceil(minutes / 5) * 5;
-  const nextSignalTime = new Date(now);
-  nextSignalTime.setMinutes(nextFiveMin, 0, 0);
-  const entryEnd = new Date(nextSignalTime);
-  entryEnd.setMinutes(entryEnd.getMinutes() + 2);
-  const tradeExpiry = new Date(nextSignalTime);
-  tradeExpiry.setMinutes(tradeExpiry.getMinutes() + 7);
-  const timeUntilSignal = Math.max(0, (nextSignalTime - now) / 1000);
-  const isInEntryWindow = now >= nextSignalTime && now < entryEnd;
-  return { nextSignalTime, entryEnd, tradeExpiry, timeUntilSignal, isInEntryWindow };
-}
-
+// ======================= TIMER DISPLAY =======================
 function updateTimerDisplay() {
   const timerEl = document.getElementById('tradeTimer');
   if (!timerEl) return;
-  const windowInfo = getTradeWindowInfo();
-  const now = getWATTime();
-  if (windowInfo.isInEntryWindow) {
-    const remainingEntry = Math.max(0, (windowInfo.entryEnd - now) / 1000);
-    const mins = Math.floor(remainingEntry / 60);
-    const secs = Math.floor(remainingEntry % 60);
-    timerEl.innerHTML = `🎯 ENTRY OPEN: ${mins}:${secs.toString().padStart(2,'0')}`;
-    timerEl.style.color = '#00e599';
-  } else if (windowInfo.timeUntilSignal <= 60) {
-    const secs = Math.floor(windowInfo.timeUntilSignal);
-    timerEl.innerHTML = `⏰ NEXT SIGNAL: ${secs}s`;
-    timerEl.style.color = '#ffaa00';
-  } else {
-    const mins = Math.floor(windowInfo.timeUntilSignal / 60);
-    const secs = Math.floor(windowInfo.timeUntilSignal % 60);
-    timerEl.innerHTML = `📡 Next signal: ${mins}:${secs.toString().padStart(2,'0')}`;
-    timerEl.style.color = '#26A5E4';
+  
+  const activeTrades = Object.keys(pendingSignals).length;
+  if (activeTrades > 0) {
+    let earliestExpiry = null;
+    for (const key in pendingSignals) {
+      const expiry = pendingSignals[key].expiryTime;
+      if (!earliestExpiry || expiry < earliestExpiry) earliestExpiry = expiry;
+    }
+    if (earliestExpiry) {
+      const remaining = Math.max(0, (earliestExpiry - getWATTime()) / 1000);
+      const mins = Math.floor(remaining / 60);
+      const secs = Math.floor(remaining % 60);
+      timerEl.innerHTML = `⏳ ${activeTrades} active trade(s) | Next expiry: ${mins}:${secs.toString().padStart(2,'0')}`;
+      timerEl.style.color = '#ffaa00';
+      return;
+    }
   }
-  checkExpiredSignals();
+  
+  timerEl.innerHTML = `🟢 REAL-TIME | 5-min trades | Scanning every 30s`;
+  timerEl.style.color = '#00e599';
 }
 
 // ======================= ASSET SELECTION =======================
@@ -352,11 +315,8 @@ function renderAssetGrid() {
                      <label for="chk_${asset.replace(/\//g, '_')}">${icon} ${displayName}</label>`;
     const checkbox = div.querySelector('input');
     checkbox.addEventListener('change', (e) => {
-      if (e.target.checked) { 
-        if (!selectedAssets.includes(asset)) selectedAssets.push(asset); 
-      } else { 
-        selectedAssets = selectedAssets.filter(a => a !== asset); 
-      }
+      if (e.target.checked) { if (!selectedAssets.includes(asset)) selectedAssets.push(asset); }
+      else { selectedAssets = selectedAssets.filter(a => a !== asset); }
       localStorage.setItem('trendpulse_channel_selected_assets', JSON.stringify(selectedAssets));
       const countEl = document.getElementById('selectedCount');
       if (countEl) countEl.innerHTML = `✓ ${selectedAssets.length} assets selected`;
@@ -380,6 +340,13 @@ function loadChannelConfig() {
     channelConfig.isValid = false; 
     updateConnectionStatus('offline'); 
   }
+}
+
+function startHeartbeat() {
+  if (heartbeatInterval) clearInterval(heartbeatInterval);
+  heartbeatInterval = setInterval(() => {
+    lastHeartbeat = Date.now();
+  }, 30000);
 }
 
 // ======================= API & TECHNICAL ANALYSIS =======================
@@ -449,7 +416,7 @@ function detectTrend(prices) {
   return { trend, confidence, rsi: rsi.toFixed(1), ema9: ema9.toFixed(5), ema21: ema21.toFixed(5), momentumPercent: momentumPercent.toFixed(3), currentPrice };
 }
 
-async function analyzeSingleAsset(asset) {
+async function analyzeSingleAssetInstant(asset, updateUI = false, isUIPrimary = false) {
   const isForex = isForexAsset(asset);
   let displayName = asset.includes('USDT') ? asset.replace('USDT', '/USDT') : asset;
   try {
@@ -460,39 +427,42 @@ async function analyzeSingleAsset(asset) {
     const prevPrice = closes[closes.length-2] || currentPrice;
     const changePercent = ((currentPrice - prevPrice) / prevPrice * 100).toFixed(4);
     const finalSignal = result.trend === 'BULLISH' ? 'BUY' : (result.trend === 'BEARISH' ? 'SELL' : 'NEUTRAL');
-    const signalKey = `${asset}_signal`;
-    const lastSignal = lastSignals[signalKey];
     
-    if (finalSignal !== 'NEUTRAL' && lastSignal !== finalSignal && channelConfig.isValid) {
-      const windowInfo = getTradeWindowInfo();
-      if (windowInfo.isInEntryWindow) {
-        const signalMsg = `${finalSignal === 'BUY' ? '🟢' : '🔴'} *${finalSignal} SIGNAL* 🔔\n\n📊 *Asset:* ${displayName}\n💰 *Price:* ${formatPrice(currentPrice, asset)}\n📈 *Expiry time: 5 mins* (${changePercent}%)\n🎯 *Confidence:* ${result.confidence}%\n\n⏰ *Entry window closes at:* ${windowInfo.entryEnd.toLocaleTimeString('en-GB')}\n⏱ *Trade expires at:* ${windowInfo.tradeExpiry.toLocaleTimeString('en-GB')}`;
-        const sent = await sendToChannel(signalMsg, true);
-        if (sent) {
-          lastSignals[signalKey] = finalSignal;
-          const signalId = `${asset}_${Date.now()}`;
-          pendingSignals[signalId] = {
-            asset: asset,
-            direction: finalSignal,
-            entryPrice: currentPrice,
-            entryTime: getWATTime(),
-            expiryTime: windowInfo.tradeExpiry,
-            displayName: displayName
-          };
-          console.log(`Signal sent: ${finalSignal} on ${asset}, will verify at ${windowInfo.tradeExpiry.toLocaleTimeString()}`);
-        }
+    if (finalSignal !== 'NEUTRAL' && channelConfig.isValid && canSendSignal(asset, finalSignal)) {
+      const now = getWATTime();
+      const { entryEnd, expiryTime } = getTradeDeadlines(now);
+      
+      const signalMsg = `⚡ *INSTANT ${finalSignal} SIGNAL* ⚡\n\n📊 *Asset:* ${displayName}\n💰 *Price:* ${formatPrice(currentPrice, asset)}\n📈 *Change:* ${changePercent}%\n🎯 *Confidence:* ${result.confidence}%\n\n✅ *Entry Window:* Opens NOW for 2 minutes\n⏱ *Trade Expires:* ${expiryTime.toLocaleTimeString('en-GB')} (5 min from now)\n\n🟢 *Action: Enter ${finalSignal} position within 2 min*`;
+      
+      const sent = await sendToChannel(signalMsg, true);
+      if (sent) {
+        recordSentSignal(asset, finalSignal, currentPrice, expiryTime);
+        const signalId = `${asset}_${Date.now()}`;
+        pendingSignals[signalId] = {
+          id: signalId,
+          asset: asset,
+          direction: finalSignal,
+          entryPrice: currentPrice,
+          entryTime: now,
+          expiryTime: expiryTime,
+          displayName: displayName,
+          signalId: signalId
+        };
+        console.log(`⚡ INSTANT SIGNAL: ${finalSignal} on ${asset} at ${currentPrice} | Expires in 5 min`);
       }
-    } else if (finalSignal === 'NEUTRAL') {
-      lastSignals[signalKey] = null;
     }
-    return { asset, displayName, result, currentPrice, changePercent, finalSignal };
+    
+    if (updateUI && isUIPrimary) {
+      return { asset, displayName, result, currentPrice, changePercent, finalSignal };
+    }
+    return null;
   } catch (err) {
     console.error(`Error on ${asset}:`, err.message);
     return null;
   }
 }
 
-async function runFullAnalysis(updateUI = true) {
+async function runInstantAnalysis(updateUI = false) {
   if (isAnalyzing) return;
   isAnalyzing = true;
   lastHeartbeat = Date.now();
@@ -500,14 +470,16 @@ async function runFullAnalysis(updateUI = true) {
   const analyzeBtn = document.getElementById('analyzeBtn');
   if (updateUI && analyzeBtn) { 
     analyzeBtn.disabled = true; 
-    analyzeBtn.innerHTML = '⏳ Analyzing...'; 
+    analyzeBtn.innerHTML = '⏳ Scanning...'; 
   }
   
   const firstAsset = selectedAssets[0];
   let uiResult = null;
+  
   for (const asset of selectedAssets) {
-    const result = await analyzeSingleAsset(asset);
-    if (result && updateUI && asset === firstAsset) uiResult = result;
+    const isPrimary = (asset === firstAsset);
+    const result = await analyzeSingleAssetInstant(asset, updateUI, isPrimary);
+    if (result && isPrimary) uiResult = result;
     await new Promise(resolve => setTimeout(resolve, 800));
   }
   
@@ -527,18 +499,20 @@ async function runFullAnalysis(updateUI = true) {
     if (rsiSpan) rsiSpan.innerHTML = uiResult.result.rsi;
     if (momSpan) momSpan.innerHTML = uiResult.result.momentumPercent + '%';
     if (signalDiv) {
-      if (uiResult.finalSignal === 'BUY') signalDiv.innerHTML = `<div class="signal-big bullish">🔺 BULLISH · BUY 🔺</div><div style="font-size:0.7rem;">Confidence ${uiResult.result.confidence}%</div>`;
-      else if (uiResult.finalSignal === 'SELL') signalDiv.innerHTML = `<div class="signal-big bearish">🔻 BEARISH · SELL 🔻</div><div style="font-size:0.7rem;">Confidence ${uiResult.result.confidence}%</div>`;
-      else signalDiv.innerHTML = `<div class="signal-big neutral">⚪ NEUTRAL · HOLD ⚪</div>`;
+      if (uiResult.finalSignal === 'BUY') signalDiv.innerHTML = `<div class="signal-big bullish">🔺 BULLISH · BUY 🔺</div><div style="font-size:0.7rem;">Confidence ${uiResult.result.confidence}% | 5-min trade</div>`;
+      else if (uiResult.finalSignal === 'SELL') signalDiv.innerHTML = `<div class="signal-big bearish">🔻 BEARISH · SELL 🔻</div><div style="font-size:0.7rem;">Confidence ${uiResult.result.confidence}% | 5-min trade</div>`;
+      else signalDiv.innerHTML = `<div class="signal-big neutral">⚪ NEUTRAL · HOLD ⚪</div><div style="font-size:0.7rem;">Waiting for trend detection</div>`;
     }
   }
+  
   const timestampMsg = document.getElementById('timestampMsg');
   if (timestampMsg) {
-    timestampMsg.innerHTML = `🕒 Last scan: ${new Date().toLocaleTimeString()} · Monitoring ${selectedAssets.length} assets · Active signals: ${Object.keys(pendingSignals).length}`;
+    timestampMsg.innerHTML = `🕒 Last scan: ${new Date().toLocaleTimeString()} · Monitoring ${selectedAssets.length} assets · Active trades: ${Object.keys(pendingSignals).length}`;
   }
+  
   if (updateUI && analyzeBtn) { 
     analyzeBtn.disabled = false; 
-    analyzeBtn.innerHTML = '🔍 Manual Analysis Now'; 
+    analyzeBtn.innerHTML = '🔍 Force Analysis Now'; 
   }
   isAnalyzing = false;
 }
@@ -554,26 +528,7 @@ function formatPrice(price, asset) {
   return price.toFixed(5);
 }
 
-function startAutoRefresh() {
-  const scheduleNextRun = () => {
-    const now = getWATTime();
-    const minutes = now.getMinutes();
-    const nextFiveMin = Math.ceil((minutes + 0.1) / 5) * 5;
-    let nextRun = new Date(now);
-    nextRun.setMinutes(nextFiveMin, 0, 0);
-    const delay = nextRun - now;
-    setTimeout(() => {
-      runFullAnalysis(true);
-      scheduleNextRun();
-    }, Math.max(1000, delay));
-  };
-  scheduleNextRun();
-  setInterval(() => { updateTimerDisplay(); }, 1000);
-}
-
-// ======================= START THE APP =======================
-// Wait for DOM to be fully loaded before initializing passcode
+// ======================= START =======================
 document.addEventListener('DOMContentLoaded', function() {
-  console.log("DOM loaded, initializing passcode...");
   initPasscode();
 });
