@@ -1,4 +1,4 @@
-/* style.css */
+/* style.css - same as before, keeping for completeness */
 * {
   margin: 0;
   padding: 0;
@@ -296,27 +296,6 @@ button.danger:hover {
   display: flex;
   gap: 10px;
   margin-top: 5px;
-}
-
-.result-badge {
-  display: inline-block;
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 0.7rem;
-  font-weight: bold;
-  margin-left: 8px;
-}
-
-.result-win {
-  background: #00e59920;
-  color: #00e599;
-  border: 1px solid #00e59940;
-}
-
-.result-loss {
-  background: #ff4d6d20;
-  color: #ff4d6d;
-  border: 1px solid #ff4d6d40;
 }
 
 @media (max-width: 600px) {
