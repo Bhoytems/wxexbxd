@@ -5,10 +5,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
   <meta name="theme-color" content="#000000">
-  <title>Trend Pulse | Secure Access</title>
+  <title>Trend Pulse | Instant Signals</title>
   <link rel="stylesheet" href="style.css">
   <style>
-    /* Critical inline styles for passcode page - ensures immediate styling */
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #000000; font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; color: #eef2ff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem; }
     .passcode-container { max-width: 400px; width: 100%; }
@@ -25,23 +24,13 @@
     .keypad-hint { font-size: 0.65rem; color: #4b5563; margin-top: 1rem; }
     @media (max-width: 480px) { .pin-digit { width: 50px; height: 60px; font-size: 1.5rem; } }
   </style>
-  <script>
-  // Small check to ensure main app is hidden initially
-  document.addEventListener('DOMContentLoaded', function() {
-    // Make sure main app is hidden, passcode page is visible
-    const mainApp = document.getElementById('mainApp');
-    const passcodePage = document.getElementById('passcodePage');
-    if (mainApp) mainApp.style.display = 'none';
-    if (passcodePage) passcodePage.style.display = 'flex';
-  });
-  </script>
 </head>
 <body>
 <div class="passcode-container" id="passcodePage">
   <div class="passcode-card">
-    <div class="logo-icon">📊</div>
+    <div class="logo-icon">⚡</div>
     <h2>Trend Pulse</h2>
-    <div class="sub">Channel Signals + Auto Win/Loss Verification</div>
+    <div class="sub">Instant Signals • 7-Min Trade Window</div>
     <div class="pin-input-group" id="pinInputs">
       <input type="password" maxlength="1" class="pin-digit" id="pin0" autofocus>
       <input type="password" maxlength="1" class="pin-digit" id="pin1">
@@ -50,7 +39,7 @@
     </div>
     <button id="unlockBtn">Unlock Access</button>
     <div class="error-msg" id="passcodeError"></div>
-    <div class="keypad-hint">🔒 Enter the correct pin</div>
+    <div class="keypad-hint">🔒 Default PIN: 0000</div>
   </div>
 </div>
 
@@ -58,7 +47,7 @@
   <div class="app-container">
     <div class="signal-card">
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-        <div class="badge">⚡ CHANNEL SIGNAL BOT | 5-MIN ANALYSIS</div>
+        <div class="badge">⚡ INSTANT SIGNAL BOT | REAL-TIME ANALYSIS</div>
         <div class="status-container">
           <div class="status-indicator">
             <div id="statusLed" class="status-led offline"></div>
@@ -67,7 +56,7 @@
         </div>
       </div>
       
-      <h1>Trend Pulse<br><span style="font-size: 0.8rem;">Telegram Channel Signals • 7-Min Trade Window • Auto Win/Loss</span></h1>
+      <h1>Trend Pulse<br><span style="font-size: 0.8rem;">Instant Signals • 2-Min Entry • 5-Min Trade • Auto Win/Loss</span></h1>
 
       <div class="config-section">
         <div class="config-label">📊 SELECT ASSETS TO MONITOR</div>
@@ -89,24 +78,24 @@
         <div id="telegramTestResult" style="font-size: 0.7rem; margin-top: 8px;"></div>
       </div>
 
-      <button id="analyzeBtn" style="width: 100%; margin: 10px 0;">🔍 Manual Analysis Now</button>
+      <button id="analyzeBtn" style="width: 100%; margin: 10px 0;">🔍 Force Analysis Now</button>
 
       <div class="timer-box">
-        <div style="font-size: 0.7rem; color: #8b949e;">⏰ Next Entry Window (WAT - West Africa Time)</div>
+        <div style="font-size: 0.7rem; color: #8b949e;">⏰ Current Trade Window Status (WAT)</div>
         <div id="tradeTimer" class="timer-digits">--:--</div>
         <div style="font-size: 0.7rem; margin-top: 5px;">
-          🟢 Signal at :00/:05/:10/:15/:20/:25/:30/:35/:40/:45/:50/:55<br>
-          ✅ Entry: 2 min after signal | ⏱ Trade expiry: 7 min total
+          🟢 Signal at ANY TIME when trend detected<br>
+          ✅ Entry: 2 min window | ⏱ Trade expires: 7 min after signal
         </div>
       </div>
 
       <div class="trend-pill" id="signalDisplay">
-        <div class="signal-big neutral">— WAITING —</div>
+        <div class="signal-big neutral">— MONITORING —</div>
       </div>
 
       <div class="info-grid">
         <div class="info-item"><div class="info-label">Current Price</div><div class="info-value" id="priceVal">—</div></div>
-        <div class="info-item"><div class="info-label">Change (5m)</div><div class="info-value" id="changeVal">—</div></div>
+        <div class="info-item"><div class="info-label">Change (now)</div><div class="info-value" id="changeVal">—</div></div>
         <div class="info-item"><div class="info-label">Trend Strength</div><div class="info-value" id="strengthVal">—</div></div>
       </div>
 
@@ -116,10 +105,10 @@
         <span>⚡ Momentum: <span id="momSpan">—</span></span>
       </div>
       
-      <div class="last-updated" id="timestampMsg">🟢 Monitoring selected assets (5-min intervals)</div>
+      <div class="last-updated" id="timestampMsg">🟢 Real-time monitoring • Instant signals when trend detected</div>
       <div class="info-note">
-        📨 Signals + Win/Loss results automatically sent to Telegram<br>
-        🔄 Heartbeat ensures bot never goes idle | Auto-reconnect enabled
+        📨 Signals sent INSTANTLY when bullish/bearish detected + within entry window<br>
+        🔄 Auto Win/Loss verification after 7 mins | No signal cooldown
       </div>
     </div>
   </div>
