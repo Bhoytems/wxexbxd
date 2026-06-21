@@ -15,7 +15,9 @@ if (missing.length > 0) {
   console.error(`Missing required environment variables: ${missing.join(', ')}`);
   process.exit(1);
 }
-
+app.get('/', (req, res) => {
+  res.send('Makyton API is running ✅');
+});
 const app = express();
 app.use(express.json());
 app.use(cookieParser());
