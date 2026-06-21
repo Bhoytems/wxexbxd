@@ -20,10 +20,6 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 
-app.get('/', (req, res) => {
-  res.send('Makyton API is running ✅');
-});
-
 app.get('/api/health', async (req, res) => {
   try {
     const result = await db.pool.query('SELECT NOW()');
