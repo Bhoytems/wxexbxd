@@ -1,6 +1,24 @@
 require('dotenv').config();
 const path = require('path');
 const express = require('express');
+app.get('/api/health', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT NOW()');
+    res.json({
+      status: 'ok',
+      server: 'running',
+      database: 'connected',
+      db_time: result.rows[0].now
+    });
+  } catch (err) {
+    res.status(500).json({
+      status: 'error',
+      server: 'running',
+      database: 'disconnected',
+      error: err.message
+    });
+  }
+});
 const cookieParser = require('cookie-parser');
 const db = require('./db');
 const { createBot } = require('./bot');
