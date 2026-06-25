@@ -1,0 +1,6 @@
+flask==3.0.3
+flask-socketio==5.3.6
+eventlet==0.35.2
+gunicorn==21.2.0
+git+https://github.com/Lu-Yi-Hsun/iqoptionapi.git
+requests==2.31.0
