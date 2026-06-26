@@ -12,7 +12,7 @@ app.secret_key = os.environ.get('SECRET_KEY', 'fractalbot-motomori-2024')
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
 bot = TradingBot(socketio)
-APP_PASSWORD = os.environ.get('APP_PASSWORD', 'MOTOMORI')
+APP_PASSWORD = os.environ.get('APP_PASSWORD')
 
 HTML = r"""<!DOCTYPE html>
 <html lang="en">
