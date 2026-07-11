@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Signal Engine — Dashboard</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="brand-mark">◆</span> SIGNAL ENGINE</div>
+  <div class="topbar-right">
+    <span id="statusPill" class="pill {{ 'pill-online' if running else 'pill-offline' }}">
+      {{ 'ONLINE' if running else 'OFFLINE' }}
+    </span>
+    <button id="engineToggleBtn" class="btn {{ 'btn-danger' if running else 'btn-primary' }}">
+      {{ 'STOP' if running else 'START' }}
+    </button>
+    <a href="{{ url_for('logout') }}" class="logout-link">Log out</a>
+  </div>
+</header>
+
+<main class="layout">
+
+  <section class="panel">
+    <h2>Assets</h2>
+    <div class="asset-list">
+      {% for key, a in assets.items() %}
+      <label class="asset-row">
+        <span>{{ a.label }}</span>
+        <input type="checkbox" class="asset-toggle" data-asset="{{ key }}" {{ 'checked' if toggles.get(key) else '' }}>
+        <span class="switch"></span>
+      </label>
+      {% endfor %}
+    </div>
+    <label class="asset-row asset-row-all">
+      <span>All assets</span>
+      <input type="checkbox" id="toggleAll">
+      <span class="switch"></span>
+    </label>
+  </section>
+
+  <section class="panel">
+    <h2>Performance</h2>
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat"><span class="stat-num" id="statTotal">{{ perf.total }}</span><span class="stat-label">Signals</span></div>
+      <div class="stat"><span class="stat-num stat-win" id="statWins">{{ perf.wins }}</span><span class="stat-label">Wins</span></div>
+      <div class="stat"><span class="stat-num stat-loss" id="statLosses">{{ perf.losses }}</span><span class="stat-label">Losses</span></div>
+      <div class="stat"><span class="stat-num" id="statRate">{{ perf.win_rate }}%</span><span class="stat-label">Win rate</span></div>
+    </div>
+  </section>
+
+  <section class="panel panel-wide">
+    <h2>Telegram Channels</h2>
+    <div class="channel-add">
+      <input type="text" id="channelChatId" placeholder="Channel/Chat ID (e.g. -1001234567890)">
+      <input type="text" id="channelLabel" placeholder="Label (optional)">
+      <button id="addChannelBtn" class="btn btn-primary">Add</button>
+    </div>
+    <ul class="channel-list" id="channelList">
+      {% for c in channels %}
+      <li data-id="{{ c.id }}">
+        <span class="channel-label">{{ c.label or 'Unlabeled' }}</span>
+        <span class="channel-id">{{ c.chat_id }}</span>
+        <button class="remove-channel" data-id="{{ c.id }}">Remove</button>
+      </li>
+      {% else %}
+      <li class="empty">No channels added yet</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section class="panel panel-wide">
+    <h2>Signal History</h2>
+    <table class="signal-table" id="signalTable">
+      <thead>
+        <tr><th>Time (WAT)</th><th>Asset</th><th>Dir</th><th>Entry</th><th>Exit</th><th>Result</th><th>ID</th></tr>
+      </thead>
+      <tbody id="signalTableBody">
+        {% for s in signals %}
+        <tr>
+          <td>{{ s.sent_at_wat }}</td>
+          <td>{{ assets[s.asset_key].label if s.asset_key in assets else s.asset_key }}</td>
+          <td class="{{ 'dir-call' if s.direction == 'CALL' else 'dir-put' }}">{{ 'BUY' if s.direction == 'CALL' else 'SELL' }}</td>
+          <td>{{ s.entry_price }}</td>
+          <td>{{ s.exit_price or '—' }}</td>
+          <td class="result-{{ s.result|lower }}">{{ s.result }}</td>
+          <td class="mono">{{ s.id }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="empty">No signals yet</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+</main>
+
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

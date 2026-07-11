@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Signal Engine — Access</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="login-body">
+  <div class="login-card">
+    <div class="login-mark">◆</div>
+    <h1>SIGNAL ENGINE</h1>
+    <p class="login-sub">Enter passcode to continue</p>
+    <form method="POST" action="{{ url_for('login') }}">
+      <input type="password" name="passcode" inputmode="numeric" autocomplete="off" autofocus placeholder="••••" maxlength="12">
+      <button type="submit">ENTER</button>
+    </form>
+    {% if error %}<p class="login-error">{{ error }}</p>{% endif %}
+  </div>
+</body>
+</html>
